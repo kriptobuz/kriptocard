@@ -1,0 +1,3687 @@
+\documentclass[12pt, a4paper]{report}
+
+% --- Paket Dasar & Pengaturan Bahasa ---
+% \usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[bahasa]{babel}
+\usepackage{geometry}
+\geometry{
+    top=3cm,
+    bottom=3cm,
+    left=3.5cm,
+    right=2.5cm
+}
+
+% --- Paket Tambahan ---
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{titlesec}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{float}
+\usepackage{enumitem}
+\usepackage[table,xcdraw]{xcolor}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{tabularx} 
+\usepackage{ltablex} 
+\usepackage{ragged2e} % Untuk \RaggedRight
+\usepackage{multirow}
+\usepackage{svg}
+\usepackage{adjustbox} % opsional, tapi sangat membantu
+
+% --- Paket untuk Kode Program (Listings) ---
+\usepackage{listings}
+
+% Definisi Warna untuk Kode
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.96,0.96,0.96}
+\definecolor{rustorange}{rgb}{0.8, 0.3, 0.0}
+
+% Konfigurasi Tampilan Kode
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2,
+    frame=single
+}
+
+\lstset{style=mystyle}
+
+% Definisi Bahasa untuk Listings
+\lstdefinelanguage{Rust}{
+  keywords={fn, let, mut, if, else, while, loop, match, return, use, mod, pub, struct, enum, impl, async, await, move, unsafe, where, crate, super, self, true, false, const, static, type, trait, for, in},
+  keywordstyle=\color{rustorange}\bfseries,
+  ndkeywords={String, usize, u8, u32, u64, i32, i64, Option, Result, Box, Vec, Error, Self, bool},
+  ndkeywordstyle=\color{blue}\bfseries,
+  sensitive=true,
+  comment=[l]{//},
+  morecomment=[s]{/*}{*/},
+  commentstyle=\color{codegreen}\ttfamily,
+  stringstyle=\color{codepurple}\ttfamily,
+  morestring=[b]"
+}
+
+% Setup Judul Bab
+\titleformat{\chapter}[display]
+  {\normalfont\bfseries}{BAB \thechapter}{20pt}{\Huge}
+
+% Metadata Dokumen
+\title{\textbf{PROPOSAL TEKNIS}\\ \Large Sistem Universal Wallet Card Berbasis BIP-39 Mnemonic \& Hierarchical Deterministic (HD) Keys pada Smart Card dengan Blockchain Multi-Chain Support}
+\author{Tim Pengembang Teknis}
+\date{2026}
+
+\begin{document}
+
+% --- Halaman Judul ---
+\maketitle
+
+% --- Daftar Isi ---
+\tableofcontents
+\newpage
+
+% =========================================
+% BAB 1
+% =========================================
+\chapter{Pendahuluan}
+
+\section{Latar Belakang Teknologi}
+Dalam ekosistem blockchain tahun 2026, fragmentasi aset digital menjadi tantangan utama bagi pengguna. Seorang pengguna mungkin memiliki aset di Ethereum, Bitcoin, Solana, dan puluhan jaringan lainnya, masing-masing memerlukan dompet dan kunci yang berbeda. Pendekatan tradisional mengharuskan pengguna menyimpan puluhan \textit{seed phrase} yang berbeda, menciptakan risiko keamanan dan hambatan adopsi yang signifikan.
+
+Sistem \textbf{Universal Wallet Card} ini dirancang untuk menyelesaikan masalah tersebut dengan mengadopsi standar industri \textbf{BIP-39 (Mnemonic Code)} dan \textbf{BIP-32/44 (Hierarchical Deterministic Keys)}. Dengan menyimpan satu \textit{master seed} di dalam chip \textit{Secure Element}, pengguna dapat mengakses seluruh aset digital mereka di berbagai blockchain hanya dengan satu kartu fisik.
+
+\section{Mengapa Pendekatan Mnemonic/Seed?}
+Pendekatan berbasis \textit{seed phrase} dipilih karena beberapa keunggulan fundamental:
+
+\begin{enumerate}
+    \item \textbf{Universalitas:} Standar BIP-39/44 didukung oleh hampir semua dompet kripto utama (Metamask, Ledger, Trezor, Trust Wallet, dll). Kartu ini dapat menjadi \textit{backup} fisik yang kompatibel dengan ekosistem yang sudah ada.
+    
+    \item \textbf{Derivasi Deterministik:} Dari satu \textit{master seed} 256-bit, sistem dapat menghasilkan jutaan pasangan kunci unik untuk berbagai blockchain tanpa perlu menyimpan semuanya. Hanya seed yang disimpan, alamat diturunkan secara matematis.
+    
+    \item \textbf{Pemulihan Lintas Platform:} Jika kartu hilang, pengguna dapat memulihkan seluruh dompet mereka di platform manapun yang mendukung BIP-39 menggunakan 12/24 kata mnemonic yang telah di-backup dengan aman.
+    
+    \item \textbf{Keamanan Cold Storage:} Seed tidak pernah meninggalkan chip. Operasi penandatanganan dilakukan di dalam \textit{Secure Element}, menjadikan kartu sebagai \textit{cold wallet} portabel.
+\end{enumerate}
+
+\section{Tujuan Sistem \& Cakupan MVP}
+Tujuan utama dari arsitektur \textbf{Universal Wallet Card} adalah:
+
+\begin{enumerate}
+    \item \textbf{Satu Kartu untuk Semua:} Menyimpan satu \textit{master seed} yang dapat menurunkan alamat untuk Bitcoin, Ethereum, Base L2, Solana, dan blockchain lainnya.
+    
+    \item \textbf{Standar Industri:} Mengimplementasikan BIP-39 (Mnemonic), BIP-32 (HD Wallet), dan BIP-44 (Multi-Account Hierarchy) secara penuh.
+    
+    \item \textbf{Kompatibilitas:} Seed yang dihasilkan dapat dipulihkan di dompet standar seperti Ledger, Trezor, atau Metamask.
+    
+    \item \textbf{Keamanan Non-Custodial:} Seed phrase hanya diketahui pengguna, tidak disimpan di server manapun.
+    
+    \item \textbf{Transaksi Gasless:} Integrasi dengan ERC-4337 untuk transaksi tanpa biaya gas pada jaringan EVM.
+\end{enumerate}
+
+\textbf{Cakupan MVP:}
+\begin{itemize}
+    \item Implementasi BIP-39 dengan dukungan 12 dan 24 kata mnemonic.
+    \item Derivasi kunci untuk path:
+        \begin{itemize}
+            \item \texttt{m/44'/60'/0'/0/x} (Ethereum/Base)
+            \item \texttt{m/44'/0'/0'/0/x} (Bitcoin)
+            \item \texttt{m/44'/501'/0'/0'} (Solana)
+        \end{itemize}
+    \item Kartu JavaCard JCOP dengan penyimpanan seed terenkripsi.
+    \item Terminal pembayaran berbasis ESP32 dan Aplikasi Mobile.
+    \item Backend Rust untuk orkestrasi multi-chain.
+    \item Smart Contract Wallet pada Base L2 dengan dukungan ERC-4337.
+\end{itemize}
+
+% \textbf{Cakupan MVP:}
+% \begin{itemize}
+%     \item Implementasi BIP-39 dengan dukungan 12 dan 24 kata mnemonic.
+%     \item Derivasi kunci untuk path: \texttt{m/44'/60'/0'/0/x} (Ethereum/Base), \texttt{m/44'/0'/0'/0/x} (Bitcoin), \texttt{m/44'/501'/0'/0'} (Solana).
+%     \item Kartu JavaCard JCOP dengan penyimpanan seed terenkripsi.
+%     \item Terminal pembayaran berbasis ESP32 dan Aplikasi Mobile.
+%     \item Backend Rust untuk orkestrasi multi-chain.
+%     \item Smart Contract Wallet pada Base L2 dengan dukungan ERC-4337.
+% \end{itemize}
+
+\section{Definisi \& Terminologi}
+\begin{itemize}
+    \item \textbf{BIP-39:} Standar untuk menghasilkan \textit{mnemonic phrase} (12/24 kata) dari entropi acak dan mengkonversinya menjadi \textit{seed} 512-bit.
+    
+    \item \textbf{BIP-32:} Standar untuk \textit{Hierarchical Deterministic} (HD) wallet yang memungkinkan derivasi kunci anak dari kunci induk secara deterministik.
+    
+    \item \textbf{BIP-44:} Standar untuk struktur path derivasi multi-coin: \texttt{m / purpose' / coin\_type' / account' / change / address\_index}.
+    
+    \item \textbf{Master Seed:} Nilai 512-bit yang dihasilkan dari mnemonic + passphrase (opsional) menggunakan PBKDF2.
+    
+    \item \textbf{Derivation Path:} Jalur hierarkis untuk menurunkan kunci spesifik dari master seed (contoh: \texttt{m/44'/60'/0'/0/0}).
+    
+    \item \textbf{Hardened Derivation:} Derivasi yang menggunakan kunci privat (ditandai dengan \texttt{'}), memberikan isolasi keamanan lebih kuat.
+    
+    \item \textbf{Secure Element (SE):} Chip tahan sabotase yang menyimpan master seed dan menjalankan operasi kriptografi.
+    
+    \item \textbf{SLIP-39:} Standar untuk membagi seed menjadi beberapa \textit{shares} menggunakan Shamir's Secret Sharing (opsional untuk recovery lanjutan).
+\end{itemize}
+
+% =========================================
+% BAB 2
+% =========================================
+\chapter{Arsitektur Kriptografi \& Standar BIP}
+
+\section{Gambaran Umum Hierarki Kunci}
+Sistem Universal Wallet Card mengimplementasikan hierarki kunci deterministik 
+penuh sesuai standar BIP-32/44. Berikut adalah struktur derivasi yang 
+ditunjukkan pada Gambar~\ref{fig:hierarki-kunci}.
+
+\begin{figure}[H]  % H = HERE (paksa di sini)
+    \centering
+    \includegraphics[width=0.3\linewidth]{image1.png}
+    \caption{Struktur Hierarki Derivasi Kunci berdasarkan Standar BIP-32/44}
+    \label{fig:hierarki-kunci}
+\end{figure}
+
+\begin{center}
+\textbf{\large Hierarki Derivasi Kunci — BIP-39 → BIP-32 → BIP-44 (Multi-Coin)} \\[8pt]
+
+\renewcommand{\arraystretch}{1.52}
+\small
+\begin{longtable}{|>{\centering\arraybackslash}p{2.7cm}|>{\centering\arraybackslash}p{2.5cm}|p{7.0cm}|}
+\hline
+\textbf{Tahap} & \textbf{Output} & \textbf{Deskripsi \& Path Derivasi} \\ \hline
+\endfirsthead
+
+\hline
+\textbf{Tahap} & \textbf{Output} & \textbf{Deskripsi \& Path Derivasi} \\ \hline
+\endhead
+
+Entropy & 128 atau 256 bit & Entropy acak dari TRNG hardware di dalam Secure Element \\ \hline
+
+Mnemonic & 12 atau 24 kata & Konversi BIP-39 (wordlist 2048 kata) \\
+& & Contoh: \textit{fire fly ... zebra} \\ \hline
+
+Master Seed & 512 bit (64 byte) & PBKDF2-HMAC-SHA512 \\
+& & Input: Mnemonic + optional passphrase \\
+& & Output: Master Seed (sumber semua kunci) \\ \hline
+
+Master Node & Master Private Key + Chain Code & HMAC-SHA512(''Bitcoin seed'', Master Seed) \\
+& \texttt{m} & Root BIP-32 Hierarchical Deterministic Wallet \\ \hline
+
+Purpose & \texttt{m/44'} & BIP-44 — standar modern multi-coin \\
+& & Level hardened (') \\ \hline
+
+Coin Type & \texttt{m/44'/coin'} & Menentukan blockchain (SLIP-44) \\ \hline
+
+\multirow{7}{*}{Coin Type} 
+& \texttt{m/44'/60'}  & Ethereum + semua EVM chain \\ 
+& \texttt{m/44'/0'}   & Bitcoin \\ 
+& \texttt{m/44'/501'} & Solana \\ 
+& \texttt{m/44'/354'} & Polkadot \\ 
+& \texttt{m/44'/118'} & Cosmos (ATOM) \\ 
+& \texttt{m/44'/195'} & TRON \\ 
+& \texttt{m/44'/145'} & Bitcoin Cash \\ \hline
+
+Account & \texttt{m/44'/60'/x'} & Account index (hardened), x = 0, 1, 2, … \\ \hline
+
+Change & \texttt{m/44'/60'/0'/c} & c = 0 → receive address, c = 1 → change address \\ \hline
+
+Address Index & \texttt{m/44'/60'/0'/0/n} & n = 0, 1, 2, … → alamat individu \\ \hline
+
+\end{longtable}
+
+\vspace{10pt}
+
+\textbf{Contoh Path Populer yang Didukung Secara Native} \\[4pt]
+\begin{tabular}{|p{12.8cm}|}
+\hline
+\begin{itemize}[leftmargin=*,nosep]
+\item Ethereum (default): \texttt{m/44'/60'/0'/0/0}
+\item Bitcoin Native SegWit (BIP-84): \texttt{m/84'/0'/0'/0/0}
+\item Bitcoin SegWit (BIP-49): \texttt{m/49'/0'/0'/0/0}
+\item Bitcoin Legacy (BIP-44): \texttt{m/44'/0'/0'/0/0}
+\item Solana: \texttt{m/44'/501'/0'} \quad (single address per account)
+\item Ledger Live style: \texttt{m/44'/60'/n'/0/0} → akun ke-n langsung
+\end{itemize} \\ \hline
+\end{tabular}
+
+\vspace{10pt}
+
+\begin{tabular}{|p{12.8cm}|}
+\hline
+\textbf{Prinsip Keamanan \& Kompatibilitas} \\[3pt]
+\begin{itemize}[leftmargin=*,nosep]
+\item Semua proses derivasi dilakukan \textbf{sepenuhnya di dalam Secure Element}
+\item Private key \textbf{tidak pernah keluar} dari chip — bahkan saat signing transaksi
+\item 100\% kompatibel dengan MetaMask, Trust Wallet, Phantom, Rabby, Exodus, Electrum, Sparrow, dll.
+\item Satu mnemonic → mendukung \textbf{puluhan blockchain sekaligus} tanpa kompromi keamanan
+\end{itemize} \\ \hline
+\end{tabular}
+
+\end{center}
+
+
+\section{Implementasi BIP-39: Mnemonic Generation}
+Proses pembuatan mnemonic phrase mengikuti spesifikasi BIP-39 secara ketat:
+
+\subsection{Tahap 1: Entropy Generation}
+Entropi dihasilkan di dalam Secure Element menggunakan True Random Number Generator (TRNG) yang tersertifikasi.
+
+\begin{itemize}
+    \item \textbf{12 kata:} 128-bit entropi + 4-bit checksum = 132 bit $\div$ 11 = 12 kata
+    \item \textbf{24 kata:} 256-bit entropi + 8-bit checksum = 264 bit $\div$ 11 = 24 kata
+\end{itemize}
+
+\begin{lstlisting}[language=Rust, title={Algoritma BIP-39 Mnemonic Generation}]
+use sha2::{Sha256, Digest};
+
+pub fn generate_mnemonic(entropy_bits: usize) -> Result<Vec<String>, Error> {
+    // Validasi: hanya terima 128, 160, 192, 224, atau 256 bit
+    assert!(entropy_bits >= 128 && entropy_bits <= 256 && entropy_bits % 32 == 0);
+    
+    // 1. Generate entropy dari TRNG Secure Element
+    let entropy = secure_element.generate_entropy(entropy_bits / 8);
+    
+    // 2. Hitung checksum (CS = ENT / 32)
+    let checksum_bits = entropy_bits / 32;
+    let hash = Sha256::digest(&entropy);
+    let checksum = hash[0] >> (8 - checksum_bits);
+    
+    // 3. Gabungkan entropy + checksum
+    let mut combined = entropy.to_vec();
+    combined.push(checksum << (8 - checksum_bits));
+    
+    // 4. Bagi menjadi grup 11-bit dan map ke wordlist
+    let words: Vec<String> = split_to_11bit_groups(&combined)
+        .iter()
+        .map(|&idx| BIP39_WORDLIST[idx as usize].to_string())
+        .collect();
+    
+    Ok(words)
+}
+\end{lstlisting}
+
+\subsection{Tahap 2: Mnemonic to Seed Conversion}
+Konversi dari mnemonic ke seed menggunakan PBKDF2-HMAC-SHA512:
+
+\begin{equation}
+\text{Seed} = \text{PBKDF2}(\text{HMAC-SHA512}, \text{mnemonic}, \text{"mnemonic"} + \text{passphrase}, 2048, 512)
+\end{equation}
+
+\begin{lstlisting}[language=Rust, title={Konversi Mnemonic ke Seed}]
+use pbkdf2::pbkdf2_hmac;
+use sha2::Sha512;
+
+pub fn mnemonic_to_seed(mnemonic: &str, passphrase: &str) -> [u8; 64] {
+    let salt = format!("mnemonic{}", passphrase);
+    let mut seed = [0u8; 64];
+    
+    pbkdf2_hmac::<Sha512>(
+        mnemonic.as_bytes(),
+        salt.as_bytes(),
+        2048,  // iterations
+        &mut seed
+    );
+    
+    seed
+}
+\end{lstlisting}
+
+\section{Implementasi BIP-32: Hierarchical Deterministic Keys}
+Dari master seed, sistem menurunkan master private key dan chain code:
+
+\begin{equation}
+(k_{\text{master}}, c_{\text{master}}) = \text{HMAC-SHA512}(\text{"Bitcoin seed"}, \text{Seed})
+\end{equation}
+
+Dimana 32 byte pertama adalah \textit{master private key} dan 32 byte terakhir adalah \textit{chain code}.
+
+\subsection{Child Key Derivation (CKD) Functions}
+
+\textbf{Hardened Child Key Derivation} (index $\geq 2^{31}$):
+\begin{equation}
+(k_i, c_i) = \text{HMAC-SHA512}(c_{\text{parent}}, 0x00 || k_{\text{parent}} || i)
+\end{equation}
+
+\textbf{Normal Child Key Derivation} (index $< 2^{31}$):
+\begin{equation}
+(k_i, c_i) = \text{HMAC-SHA512}(c_{\text{parent}}, K_{\text{parent}} || i)
+\end{equation}
+
+Dimana $K_{\text{parent}}$ adalah public key dari $k_{\text{parent}}$.
+
+\begin{lstlisting}[language=Rust, title={Implementasi Child Key Derivation di Rust}]
+use hmac::{Hmac, Mac};
+use sha2::Sha512;
+use k256::{SecretKey, ProjectivePoint};
+
+pub struct ExtendedKey {
+    private_key: [u8; 32],
+    chain_code: [u8; 32],
+    depth: u8,
+    child_index: u32,
+}
+
+impl ExtendedKey {
+    pub fn derive_child(&self, index: u32) -> Result<ExtendedKey, Error> {
+        let mut hmac = Hmac::<Sha512>::new_from_slice(&self.chain_code)?;
+        
+        if index >= 0x80000000 {
+            // Hardened derivation: use private key
+            hmac.update(&[0x00]);
+            hmac.update(&self.private_key);
+        } else {
+            // Normal derivation: use public key
+            let pubkey = self.get_public_key();
+            hmac.update(&pubkey.to_sec1_bytes());
+        }
+        
+        hmac.update(&index.to_be_bytes());
+        let result = hmac.finalize().into_bytes();
+        
+        // Split result: first 32 bytes = key material, last 32 = chain code
+        let (key_material, new_chain_code) = result.split_at(32);
+        
+        // Calculate child private key: (parent_key + key_material) mod n
+        let child_key = self.add_private_keys(&self.private_key, key_material)?;
+        
+        Ok(ExtendedKey {
+            private_key: child_key,
+            chain_code: new_chain_code.try_into()?,
+            depth: self.depth + 1,
+            child_index: index,
+        })
+    }
+    
+    pub fn derive_path(&self, path: &str) -> Result<ExtendedKey, Error> {
+        // Parse path seperti "m/44'/60'/0'/0/0"
+        let segments = parse_derivation_path(path)?;
+        let mut current = self.clone();
+        
+        for segment in segments {
+            current = current.derive_child(segment)?;
+        }
+        
+        Ok(current)
+    }
+}
+\end{lstlisting}
+
+\section{Implementasi BIP-44: Multi-Account Hierarchy}
+Standar BIP-44 mendefinisikan struktur path untuk multi-coin support:
+
+\begin{center}
+\texttt{m / purpose' / coin\_type' / account' / change / address\_index}
+\end{center}
+
+\begin{center}
+\begin{tabularx}{\textwidth}{|l|l|X|}
+\hline
+\textbf{Level} & \textbf{Nilai} & \textbf{Keterangan} \\ \hline
+purpose' & 44' & Konstanta untuk BIP-44 \\ \hline
+coin\_type' & 60', 0', 501' & ETH, BTC, SOL (SLIP-44) \\ \hline
+account' & 0', 1', 2'... & Akun terpisah untuk organisasi dana \\ \hline
+change & 0, 1 & 0=alamat penerima, 1=change \\ \hline
+address\_index & 0, 1, 2... & Indeks alamat sequential \\ \hline
+\end{tabularx}
+\end{center}
+
+
+\newcolumntype{L}{>{\RaggedRight\arraybackslash}X} % Kolom rata kiri fleksibel
+
+\section{Tabel Coin Types untuk Universal Wallet}
+
+\begin{table}[htbp]
+\centering
+\caption{Daftar Blockchain dan Derivation Path}
+\label{tab:blockchain}
+\begin{tabularx}{\textwidth}{|l|l|l|L|}
+\hline
+\textbf{Blockchain} & \textbf{Coin Type} & \textbf{Path Default} & \textbf{Kurva/Algoritma} \\ \hline
+Bitcoin    & 0'    & m/44'/0'/0'/0/0       & secp256k1 / ECDSA \\ \hline
+Ethereum   & 60'   & m/44'/60'/0'/0/0      & secp256k1 / ECDSA \\ \hline
+Base L2    & 60'   & m/44'/60'/0'/0/0      & secp256k1 / ECDSA (EVM) \\ \hline
+Solana     & 501'  & m/44'/501'/0'/0'      & ed25519 / EdDSA \\ \hline
+Polygon    & 60'   & m/44'/60'/0'/0/0      & secp256k1 / ECDSA (EVM) \\ \hline
+Arbitrum   & 60'   & m/44'/60'/0'/0/0      & secp256k1 / ECDSA (EVM) \\ \hline
+Avalanche  & 60'   & m/44'/60'/0'/0/0      & secp256k1 / ECDSA (EVM) \\ \hline
+Cosmos     & 118'  & m/44'/118'/0'/0/0     & secp256k1 / ECDSA \\ \hline
+Polkadot   & 354'  & m/44'/354'/0'/0'/0'   & sr25519 / Schnorrkel \\ \hline
+Cardano    & 1815' & m/1852'/1815'/0'/0/0  & ed25519 / EdDSA \\ \hline
+\end{tabularx}
+\end{table}
+
+\section{Dukungan Multi-Curve dalam Secure Element}
+Karena berbagai blockchain menggunakan kurva kriptografi yang berbeda, Secure Element harus mendukung multiple signature schemes:
+
+\begin{itemize}
+    \sloppy
+    \item \textbf{secp256k1 (ECDSA):} Bitcoin, Ethereum, dan semua jaringan EVM-compatible.
+    \item \textbf{ed25519 (EdDSA):} Solana, Cardano, Polkadot (opsional).
+    \item \textbf{sr25519 (Schnorrkel):} Substrate-based chains seperti Polkadot dan Kusama.
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{image2.png}
+    \caption{Diagram: Multi-Curve Support}
+    \label{fig:multicurve-support}
+\end{figure}
+
+% =========================================
+% BAB 3
+% =========================================
+\chapter{Arsitektur Hardware \& Smart Card}
+
+\section{Spesifikasi Chip JavaCard untuk Universal Wallet}
+Untuk mendukung multiple signature schemes dan penyimpanan seed yang aman, chip yang dipilih harus memiliki kapabilitas tinggi:
+
+\begin{itemize}
+    \item \textbf{Chipset Utama:} \textbf{NXP J3R180 (JCOP 4)} atau \textbf{Infineon SLC37} dengan dukungan native untuk ed25519 selain secp256k1.
+    
+    \item \textbf{Sertifikasi Keamanan:} \textbf{Common Criteria EAL6+} dengan proteksi terhadap:
+    \begin{itemize}
+        \item Side-Channel Attacks (SPA, DPA, EMA)
+        \item Fault Injection Attacks
+        \item Physical Tampering
+    \end{itemize}
+    
+    \item \textbf{Kapasitas Memori:}
+    \begin{itemize}
+        \item EEPROM: Minimum 144KB untuk penyimpanan seed terenkripsi dan metadata
+        \item RAM: Minimum 10KB untuk operasi kriptografi
+    \end{itemize}
+    
+    \item \textbf{Akselerator Kriptografi Hardware:}
+    \begin{itemize}
+        \item AES-256 untuk enkripsi seed storage
+        \item SHA-256/512 untuk BIP-39 dan derivation
+        \item ECDSA secp256k1 untuk Ethereum/Bitcoin
+        \item EdDSA ed25519 untuk Solana (jika tidak ada, implementasi software)
+    \end{itemize}
+\end{itemize}
+
+\section{Struktur Penyimpanan Seed dalam Secure Element}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{image3.png}
+    \caption{Diagram: Storage Layout dalam Secure Element}
+    \label{fig:secure-element}
+\end{figure}
+
+\begin{center}
+\textbf{\large Layout Penyimpanan Data di Dalam Secure Element} \\[10pt]
+
+\renewcommand{\arraystretch}{1.48}
+\small
+\begin{longtable}{|>{\raggedright\arraybackslash}p{3.1cm}|p{3.3cm}|p{1.9cm}|p{5.0cm}|}
+\hline
+\textbf{Area Penyimpanan} & \textbf{Isi Data} & \textbf{Ukuran} & \textbf{Kebijakan Keamanan \& Catatan} \\ \hline
+\endfirsthead
+
+\hline
+\textbf{Area Penyimpanan} & \textbf{Isi Data} & \textbf{Ukuran} & \textbf{Kebijakan Keamanan \& Catatan} \\ \hline
+\endhead
+
+\multirow{4}{*}{\parbox{3.1cm}{\centering\textbf{Protected Area}\\ \vspace{2pt}\scriptsize(Never Exportable)}}
+& Master Seed (terenkripsi)                     & 64 byte  & Selalu terenkripsi dengan kunci turunan PIN + salt \\
+&                                               &          & Tidak pernah muncul plaintext — bahkan saat signing \\ \hline
+
+& Original Entropy (terenkripsi)                & 32 byte  & Entropy asli 256-bit dari TRNG hardware \\
+&                                               &          & Disimpan sebagai cadangan recovery (opsional) \\ \hline
+
+\multirow{3}{*}{\parbox{3.1cm}{\centering\textbf{Derived Cache}\\ \vspace{2pt}\scriptsize(Optimasi Kecepatan)}}
+& Master Private Key                            & 32 byte  & Hanya dimuat ke RAM (transient) setelah PIN benar \\ \hline
+& Master Chain Code                             & 32 byte  & Bagian dari BIP-32 — hanya ada di RAM saat unlocked \\ \hline
+& Cached Derived Keys                           & 0–512 byte & Private key path populer (misalnya m/44'/60'/0'/0/0) \\ \hline
+
+\multirow{4}{*}{\parbox{3.1cm}{\centering\textbf{Metadata \& Security}}}
+& PIN Hash (Argon2id)                           & 32 byte  & Memory-hard, tahan serangan GPU/ASIC \\
+&                                               &          & Parameter: t=4, m=64 MiB, p=1 \\ \hline
+& PUK Hash                                      & 32 byte  & Untuk recovery PIN (sekali pakai → wipe seed) \\ \hline
+& Retry Counter                                 & 1 byte   & Maksimal 10 kali salah → kartu otomatis wipe \\ \hline
+& Derivation Path Config                        & 8–64 byte & Custom path ETH, BTC, SOL, dll — bisa diubah user \\ \hline
+
+\end{longtable}
+
+\vspace{12pt}
+
+\begin{tabular}{|p{13.2cm}|}
+\hline
+\textbf{Prinsip Keamanan Inti} \\[4pt]
+\textit{``Private keys dan original entropy \textbf{tidak pernah meninggalkan Secure Element dalam bentuk plaintext} — bahkan ke Mobile App sekalipun. Semua proses derivasi BIP-32/BIP-39 dan signing transaksi dilakukan sepenuhnya di dalam chip tamper-resistant.''} \\ 
+\hline
+\end{tabular}
+
+\vspace{10pt}
+
+\begin{tabular}{|p{13.2cm}|}
+\hline
+\textbf{Kondisi Akhir Setelah Setup Wallet} \\[4pt]
+\begin{itemize}[leftmargin=*,nosep]
+\item 24 kata mnemonic \textbf{hanya ada di kertas pengguna}
+\item Di dalam Secure Element: hanya Master Seed dan Entropy dalam bentuk \textbf{terenkripsi}
+\item Tidak ada plaintext seed atau mnemonic yang tersisa di kartu
+\item Siap digunakan secara \textbf{full air-gapped} dengan ketahanan serangan fisik tingkat tinggi
+\end{itemize} \\
+\hline
+\end{tabular}
+
+\end{center}
+
+
+\section{Protokol Inisialisasi Kartu (Seed Generation)}
+Proses setup kartu baru melibatkan beberapa tahap kritis:
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{image4.png}
+    \caption{Sequence Diagram: Kartu Baru - Seed Generation}
+    \label{fig:seq-import-seed2}
+\end{figure}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.38}
+\small % atau \footnotesize jika masih terlalu lebar
+\begin{longtable}{|p{0.85cm}|p{10.8cm}|}
+\hline
+\textbf{No} & \textbf{Langkah Proses New Wallet Setup} \\ \hline
+\endfirsthead
+\hline
+\textbf{No} & \textbf{Langkah Proses New Wallet Setup} \\ \hline
+\endhead
+
+1  & \textbf{Memulai proses} \\
+   & Pengguna memilih "Buat Wallet Baru" di Mobile App \\ \hline
+
+2  & \textbf{Seleksi Applet} \\
+   & App → Card: \texttt{SELECT} (0xA4) → 9000 \\ \hline
+
+3  & \textbf{Generasi Entropy (di dalam Secure Element)} \\
+   & App → Card: \texttt{GENERATE\_ENTROPY} (256-bit) \\
+   & Card (TRNG) → 256 bit entropy → +checksum BIP-39 → 24 kata mnemonic \\ \hline
+
+4a & \textbf{Backup via Secure Display (paling aman)} \\
+   & Card → E-Ink Display pada kartu: tampilkan 24 kata \\
+   & Pengguna mencatat di kertas \\
+   & \textcolor{blue}{\textit{Mnemonic tidak pernah keluar dari kartu}} \\ \hline
+
+4b & \textbf{Backup via App (fallback)} \\
+   & Card → App: mnemonic terenkripsi (one-time) \\
+   & App menampilkan 24 kata → pengguna mencatat → secure erase otomatis \\
+   & \textcolor{orange}{\textit{Tetap aman selama tidak di-screenshot}} \\ \hline
+
+5  & \textbf{Verifikasi Backup} \\
+   & App → Card: \texttt{VERIFY\_MNEMONIC}(kata ke-3, 12, 24) \\
+   & Card → 9000 jika cocok \\ \hline
+
+6  & \textbf{Pengaturan PIN} \\
+   & Pengguna masukkan PIN → App → Card: \texttt{SET\_PIN} \\
+   & Card: \\
+   & \quad → Hash PIN dengan Argon2id \\
+   & \quad → Derive master seed (BIP-32) \\
+   & \quad → Enkripsi seed dengan kunci dari PIN → simpan di EEPROM \\ \hline
+
+7  & \textbf{Selesai} \\
+   & Card → App: 9000 (Setup Complete) \\
+   & \textbf{Hasil akhir:} \\
+   & → Mnemonic hanya ada di kertas pengguna \\
+   & → Seed hanya tersimpan terenkripsi di kartu, terkunci PIN \\
+   & → Siap digunakan secara full offline/air-gapped \\ \hline
+
+\multicolumn{2}{|c|}{\textbf{Prinsip Keamanan}} \\ \hline
+\multicolumn{2}{|c|}{\parbox{10.8cm}{\centering 
+\textbf{Mnemonic never leaves the secure element in plaintext} \\ 
+(kecuali fallback dengan enkripsi one-time + immediate erase)}} \\ \hline
+
+\end{longtable}
+\end{center}
+
+\section{Protokol Import Seed yang Sudah Ada}
+Untuk pengguna yang ingin mengimpor dompet existing:
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{image41.png}
+    \caption{Sequence Diagram: Import Existing Seed}
+    \label{fig:seq-import-seed}
+\end{figure}
+
+\begin{center}
+\textbf{\large Proses Import Existing Seed/Mnemonic (Recovery Wallet)} \\[10pt]
+
+\renewcommand{\arraystretch}{1.55}
+\small
+\begin{longtable}{|p{0.9cm}|p{11.8cm}|}
+\hline
+\textbf{No} & \textbf{Langkah Proses Import Seed yang Sudah Ada} \\ \hline
+\endfirsthead
+
+\hline
+\textbf{No} & \textbf{Langkah Proses Import Seed yang Sudah Ada} \\ \hline
+\endhead
+
+1 & \textbf{Pengguna memilih opsi recovery} \\
+  & Pengguna memilih "Import Existing Wallet" atau "Recover Wallet" di Mobile App \\ \hline
+
+2 & \textbf{Seleksi Applet} \\
+  & Mobile App → JavaCard: \texttt{SELECT Applet} (INS 0xA4) → Status 9000 \\ \hline
+
+3 & \textbf{Pengguna memasukkan mnemonic} \\
+  & App meminta 12 atau 24 kata mnemonic \\
+  & Pengguna memasukkan kata demi kata secara berurutan \\ \hline
+
+4 & \textbf{Validasi checksum lokal (di Mobile App)} \\
+  & App melakukan konversi mnemonic → entropy → hitung checksum BIP-39 \\
+  & \textbf{Jika checksum salah → langsung ditolak (tidak pernah dikirim ke kartu)} \\
+  & App → Pengguna: "Error: Mnemonic tidak valid atau checksum salah" \\ \hline
+
+5 & \textbf{Mnemonic valid → kirim ke kartu secara aman} \\
+  & App mengenkripsi mnemonic menggunakan session key (ECDH + AES-GCM) \\
+  & App → JavaCard: \texttt{IMPORT\_SEED}(encrypted\_mnemonic) \\ \hline
+
+6 & \textbf{Proses di dalam Secure Element (JavaCard)} \\
+  & Kartu mendekripsi mnemonic \\
+  & Kartu \textbf{memverifikasi ulang checksum BIP-39} (double check) \\
+  & Kartu → PBKDF2-HMAC-SHA512 → menghasilkan Master Seed (512-bit) \\
+  & Kartu → derive Master Private Key + Chain Code (BIP-32) \\
+  & Kartu mengenkripsi Master Seed + Original Entropy → simpan di EEPROM \\
+  & Kartu → App: \texttt{Import Successful} (Status 9000) \\ \hline
+
+7 & \textbf{Pembersihan memori (secure erase)} \\
+  & Mobile App \textbf{seketika menghapus semua jejak mnemonic} dari RAM \\
+  & Termasuk clipboard, keyboard cache, dan variabel temporary \\
+  & \textbf{Mnemonic tidak pernah tersimpan permanen di ponsel} \\ \hline
+
+8 & \textbf{Setup PIN (opsional langsung dilanjutkan)} \\
+  & App meminta pengguna membuat PIN baru \\
+  & Proses sama seperti New Wallet Setup → PIN hash Argon2id → enkripsi seed \\ \hline
+
+\end{longtable}
+
+\vspace{12pt}
+
+\begin{tabular}{|p{13.2cm}|}
+\hline
+\textbf{Prinsip Keamanan Utama pada Proses Import} \\[4pt]
+\begin{itemize}[leftmargin=*,nosep]
+\item Mnemonic \textbf{tidak pernah dikirim ke kartu jika checksum salah} (perlindungan dini)
+\item Pengiriman mnemonic ke kartu \textbf Selalu terenkripsi end-to-end dengan session key (ECDH)
+\item Verifikasi checksum dilakukan \textbf{dua kali}: di App dan di Secure Element
+\item Setelah berhasil, mnemonic \textbf{langsung dihapus permanen dari ponsel}
+\item Master Seed \textbf{tetap hanya disimpan dalam bentuk terenkripsi} di dalam chip
+\item Proses 100\% kompatibel dengan semua wallet standar (MetaMask, Trust Wallet, Phantom, Ledger, Trezor, dll)
+\end{itemize} \\ 
+\hline
+\end{tabular}
+
+\vspace{8pt}
+
+\begin{tabular}{|p{13.2cm}|}
+\hline
+\textbf{Hasil Akhir Setelah Import Berhasil} \\
+Wallet berhasil direcover dengan \textbf{keamanan setara wallet baru yang dibuat langsung di kartu}. \\
+Tidak ada bedanya dari segi keamanan antara "Generate New" dan "Import Existing". \\
+Private key tetap \textbf{tidak pernah keluar} dari Secure Element. \\
+Siap digunakan secara full air-gapped untuk signing transaksi. \\
+\hline
+\end{tabular}
+
+\end{center}
+
+\section{Keamanan Tambahan: Passphrase (25th Word)}
+BIP-39 mendukung passphrase opsional yang bertindak sebagai "kata ke-25":
+
+\begin{itemize}
+    \item \textbf{Plausible Deniability:} Passphrase berbeda menghasilkan wallet berbeda. Pengguna dapat memiliki "decoy wallet" dengan saldo kecil.
+    
+    \item \textbf{Implementasi:} Passphrase \textbf{TIDAK} disimpan di kartu. Pengguna harus memasukkannya setiap kali menggunakan kartu untuk chain tertentu.
+    
+    \item \textbf{Storage Strategy:}
+    \begin{itemize}
+        \item Default wallet (tanpa passphrase): Untuk transaksi harian
+        \item Passphrase wallet: Untuk cold storage bernilai tinggi
+    \end{itemize}
+\end{itemize}
+
+\section{Struktur APDU untuk Universal Wallet}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.3}  % sedikit tambah jarak antar baris, lebih enak dibaca
+\begin{longtable}{|l|l|>{\raggedright\arraybackslash}p{8.7cm}|}
+\hline
+\textbf{INS Code} & \textbf{Fungsi}          & \textbf{Deskripsi}                              \\ \hline
+\endfirsthead
+\hline
+\textbf{INS Code} & \textbf{Fungsi}          & \textbf{Deskripsi}                              \\ \hline
+\endhead
+
+0xA4 & SELECT            & Memilih applet Universal Wallet                                 \\ \hline
+0x20 & VERIFY\_PIN       & Verifikasi PIN sebelum operasi sensitif                         \\ \hline
+0x24 & CHANGE\_PIN       & Mengubah PIN pengguna                                           \\ \hline
+0x40 & GENERATE\_SEED    & Generate entropy dan create mnemonic baru                       \\ \hline
+0x42 & IMPORT\_SEED      & Import mnemonic yang sudah ada                                  \\ \hline
+0x44 & EXPORT\_MNEMONIC  & Export mnemonic (one-time, requires PIN + PUK)                  \\ \hline
+0x50 & SET\_PASSPHRASE   & Set passphrase sementara untuk sesi                             \\ \hline
+0x52 & CLEAR\_PASSPHRASE & Hapus passphrase dari memory                                    \\ \hline
+0x60 & GET\_PUBKEY       & Dapatkan public key untuk path tertentu                         \\ \hline
+0x62 & GET\_ADDRESS      & Dapatkan alamat untuk chain tertentu                            \\ \hline
+0x70 & SIGN\_HASH        & Sign hash dengan kunci dari path tertentu                       \\ \hline
+0x72 & SIGN\_TX\_ETH     & Sign transaksi Ethereum (RLP encoded)                           \\ \hline
+0x74 & SIGN\_TX\_BTC     & Sign transaksi Bitcoin (PSBT)                                   \\ \hline
+0x76 & SIGN\_TX\_SOL     & Sign transaksi Solana                                           \\ \hline
+0x80 & GET\_CHAIN\_CONFIG & Dapatkan konfigurasi chain yang didukung                       \\ \hline
+0x82 & SET\_DEFAULT\_PATH & Set derivation path default                                    \\ \hline
+
+\end{longtable}
+\end{center}
+
+\section{Lifecycle Management dengan Seed}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{image5.png}
+    \caption{State Diagram: Universal Wallet Card Lifecycle}
+    \label{fig:img-lifecycle}
+\end{figure}
+
+\begin{center}
+\textbf{\large Siklus Hidup (Lifecycle) Universal Wallet Card} \\[10pt]
+\textit{State Diagram — JavaCard Secure Element} \\[12pt]
+
+\renewcommand{\arraystretch}{1.58}
+\small
+\begin{longtable}{|p{3.2cm}|p{9.8cm}|}
+\hline
+\textbf{State} & \textbf{Deskripsi \& Ketentuan Transisi} \\ \hline
+\endfirsthead
+
+\hline
+\textbf{State} & \textbf{Deskripsi \& Ketentuan Transisi} \\ \hline
+\endhead
+
+\textbf{BLANK} & Kondisi saat keluar dari pabrik chip (raw JavaCard) \\
+& Belum ada applet wallet ter-install \\ \hline
+
+\textbf{INITIALIZED} & Applet Universal Wallet sudah ter-install dan ter-select \\
+& Kartu siap digunakan (state default setelah flashing) \\
+& \textbf{Transisi masuk:} Applet Installed \\
+& \textbf{Transisi keluar:} \\
+& \quad → SEED\_GENERATED (user membuat wallet baru) \\
+& \quad → SEED\_IMPORTED (user melakukan recovery) \\ \hline
+
+\textbf{SEED\_GENERATED} & Master seed berhasil dibuat melalui TRNG di dalam kartu \\
+& Mnemonic sudah ditampilkan dan diverifikasi backupnya \\ \hline
+
+\textbf{SEED\_IMPORTED} & Master seed berhasil di-import dari mnemonic eksternal \\
+& Checksum sudah divalidasi dua kali (App + Secure Element) \\ \hline
+
+\textbf{ACTIVE} \newline \textcolor{blue}{\textbf{(Normal Operation)}} & 
+\textbf{State utama — kartu siap digunakan sepenuhnya} \\
+& PIN sudah diset dan ter-verified \\
+& Semua fungsi tersedia: Get Address, Sign TX, dll \\
+& \textbf{Transisi keluar:} \\
+& \quad → LOCKED (3 kali salah PIN) \\
+& \quad → PASSPHRASE\_MODE (user memasukkan BIP-39 passphrase) \\
+& \quad → TERMINATED (user pilih Wipe Wallet atau kerusakan fisik) \\ \hline
+
+\textbf{LOCKED} & Kartu terkunci sementara karena kesalahan PIN \\
+& Semua operasi kriptografis diblokir \\
+& \textbf{Transisi keluar:} \\
+& \quad → ACTIVE (masukkan PUK yang benar) \\
+& \quad → TERMINATED (10 kali salah PUK → wipe otomatis) \\ \hline
+
+\textbf{PASSPHRASE\_MODE} \newline \textcolor{orange}{\textbf{(Hidden Wallet)}} & 
+Akses ke ``hidden/plausible deniability wallet'' \\
+& Menggunakan Master Seed yang sama + passphrase berbeda \\
+& Alamat dan saldo terpisah total dari wallet utama \\
+& Otomatis kembali ke ACTIVE saat session berakhir (>30 detik idle) \\ \hline
+
+\textbf{TERMINATED} \newline \textcolor{red}{\textbf{(Brick/Final)}} & 
+Kartu di-wipe permanen (zeroized) — tidak dapat digunakan lagi \\
+& Semua kunci dan seed dihapus secara kriptografis \\
+& Hanya bisa kembali ke BLANK via re-flashing (jika memungkinkan) \\ \hline
+
+\end{longtable}
+
+\vspace{12pt}
+
+\begin{tabular}{|p{13.2cm}|}
+\hline
+\textbf{Fitur Keamanan Tambahan pada Lifecycle} \\[4pt]
+\begin{itemize}[leftmargin=*,nosep]
+\item Setelah masuk state \textbf{ACTIVE}, mnemonic tidak pernah lagi tersimpan dalam plaintext di mana pun
+\item Transisi ke \textbf{LOCKED} → \textbf{TERMINATED} bersifat \textbf{irreversible} oleh user biasa
+\item PUK hanya dapat digunakan \textbf{sekali} — setelah berhasil akan langsung di-reset dan seed di-wipe
+\item State \textbf{PASSPHRASE\_MODE} memberikan \textbf{plausible deniability} tingkat tinggi terhadap coercive attack
+\item Semua transisi penting dilindungi anti-rollback dan secure counter di dalam Secure Element
+\end{itemize} \\ 
+\hline
+\end{tabular}
+
+\vspace{10pt}
+
+\begin{tabular}{|l|l|}
+\hline
+\cellcolor{blue!15}\textbf{State Aman \& Normal} & BLANK $\rightarrow$ INITIALIZED $\rightarrow$ ACTIVE $\rightarrow$ PASSPHRASE\_MODE \\ \hline
+\cellcolor{orange!15}\textbf{State Warning}     & LOCKED \\ \hline
+\cellcolor{red!15}\textbf{State Kritis/Final}  & TERMINATED \\ \hline
+\end{tabular}
+
+\end{center}
+
+
+% =========================================
+% BAB 4
+% =========================================
+\chapter{Desain Terminal \& Aplikasi Mobile}
+
+\section{Arsitektur Multi-Chain Terminal}
+Terminal harus mampu berkomunikasi dengan berbagai blockchain sekaligus tetap mempertahankan UX yang sederhana.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=1\linewidth]{image6.png}
+    \caption{Desain UI}
+    \label{fig:desain-ui}
+\end{figure}
+
+\vspace{10pt}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{image61.png}
+    \caption{Arsitektur Terminal Universal}
+    \label{fig:arsitektur-terminal}
+\end{figure}
+
+\begin{center}
+\textbf{\large Arsitektur Universal Wallet Terminal (Offline + Online Hybrid)} \\[10pt]
+\textit{Layered Architecture — Hardware + Firmware + Backend} \\[14pt]
+
+\renewcommand{\arraystretch}{1.62}
+\small
+\begin{longtable}{|p{3.8cm}|p{9.4cm}|}
+\hline
+\textbf{Layer} & \textbf{Komponen \& Fungsi Utama} \\ \hline
+\endfirsthead
+
+\hline
+\textbf{Layer} & \textbf{Komponen \& Fungsi Utama} \\ \hline
+\endhead
+
+\textbf{User Interface Layer} \newline \textcolor{blue}{\scriptsize(Layer paling atas — interaksi langsung dengan user)}
+& \textbf{NFC Tap Detection} — Deteksi kartu via NFC dalam < 300 ms \\
+& \textbf{Secure Display} — E-Ink/E-Paper menampilkan Amount, Chain, Address \\
+& \textbf{Physical Keypad} — Input PIN fisik (6–8 digit) tanpa touchscreen \\
+& \textbf{Status LED + Vibration} — Feedback konfirmasi/signing \\ \hline
+
+\textbf{Card Interface Layer} \newline \textcolor{teal}{\scriptsize(Komunikasi aman dengan JavaCard SE)}
+& \textbf{PN5180 NFC Front-End} — High-power NFC controller (ISO 14443) \\
+& \textbf{APDU Protocol Handler} — Parsing dan routing INS 0xA4, 0x72, 0x74, dll \\
+& \textbf{SCP03 Secure Channel} — End-to-end encryption + mutual authentication \\
+& \quad $\rightarrow$ Semua komunikasi kartu $\leftrightarrow$ terminal dienkripsi AES-GCM \\
+& \quad → Session key dari ECDH Ephemeral (X25519) \\ \hline
+
+\textbf{Chain Abstraction Layer} \newline \textcolor{purple}{\scriptsize(Abstraksi multi-chain — satu API untuk semua)}
+& \textbf{Chain Router} — Menentukan blockchain dari QR payload atau tap context \\
+& \textbf{Ethereum/EVM Module} — Parsing EIP-1559, Legacy, ERC-20, ERC-721 \\
+& \textbf{Bitcoin Module} — PSBT parsing (BIP-174), SegWit v0/v1, Taproot ready \\
+& \textbf{Solana Module} — Transaction v0, Versioned TX, Priority Fee \\
+& \textbf{Module lain (future)} — TON, Cardano, Polkadot, Cosmos \\ \hline
+
+\textbf{Network Layer} \newline \textcolor{orange}{\scriptsize(Koneksi ke dunia luar — tetap air-gapped untuk signing)}
+& \textbf{WiFi / 4G LTE} — Koneksi internet independen (ESP32-S3 + SIM7600) \\
+& \textbf{Rust Backend API} — Server-side transaction builder \& broadcaster \\
+& \quad → Menerima unsigned payload dari terminal \\
+& \quad → Mengambil UTXO/nonce/gas price secara real-time \\
+& \quad → Mengembalikan transaksi siap-tanda-tangan ke terminal \\
+& \quad → Setelah signed → broadcast langsung ke node/network \\ \hline
+
+\end{longtable}
+
+\vspace{14pt}
+
+% Alur Data End-to-End (Visual Summary)
+\textbf{Alur Data End-to-End (Contoh Sign Transaksi Ethereum)} \\[6pt]
+\begin{tabular}{|p{13.2cm}|}
+\hline
+\begin{enumerate}[leftmargin=*,nosep]
+\item Pengguna tap kartu → Terminal deteksi via NFC
+\item Terminal baca \texttt{GET\_ADDRESS} → tampilkan alamat + QR amount di display
+\item Pengguna scan QR dari dApp → Terminal parse payload EVM
+\item Terminal → Rust Backend (via WiFi/4G): minta unsigned transaction + gas price terkini
+\item Backend kembalikan RLP-encoded unsigned TX → Terminal kirim ke kartu via SCP03
+\item Kartu derivasi private key → sign dengan \texttt{SIGN\_TX\_ETH} → kembalikan signature
+\item Terminal gabungkan signature → broadcast via Backend
+\item Display terminal: ``Transaction Confirmed'' + hash + vibration feedback
+\end{enumerate} \\ 
+\hline
+\end{tabular}
+
+\vspace{12pt}
+
+\begin{tabular}{|p{13.2cm}|}
+\hline
+\textbf{Keunggulan Arsitektur Ini} \\[4pt]
+\begin{itemize}[leftmargin=*,nosep]
+\item \textbf{100\% air-gapped signing} — private key tidak pernah keluar dari JavaCard
+\item Terminal \textbf{tidak perlu menyimpan seed atau private key sama sekali}
+\item User melihat amount \& alamat di \textbf{secure display fisik} → anti malware/phishing
+\item Mendukung \textbf{puluhan blockchain} dengan satu kartu + satu terminal
+\item Bisa beroperasi \textbf{full offline} (jika TX dibuat manual) atau online via backend
+\item Desain future-proof — cukup tambah module baru di Chain Abstraction Layer
+\end{itemize} \\
+\hline
+\end{tabular}
+
+\end{center}
+
+\section{Universal Payment Flow — Proses Pembayaran Multi-Chain}
+
+Terminal merchant dapat menerima pembayaran dari \textbf{semua blockchain utama} (Ethereum, Bitcoin, Solana, TON, dll) hanya dengan \textbf{satu kali tap kartu} — tanpa user perlu membuka aplikasi atau ponsel.
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=0.94\linewidth]{image7.png} % ganti dengan gambar hasil render mermaid kamu
+    \caption{Sequence Diagram: Universal Payment Flow — Satu alur untuk semua chain}
+    \label{fig:universal-payment-flow}
+\end{figure}
+
+\noindent
+\textbf{Universal Payment Flow — Langkah demi Langkah}
+
+\vspace{8pt}
+\renewcommand{\arraystretch}{1.55}
+\small
+\begin{longtable}{|p{0.9cm}|p{12.2cm}|}
+\hline
+\textbf{No} & \textbf{Langkah Proses Pembayaran Universal} \\ \hline
+\endhead
+
+1 & \textbf{Merchant menyiapkan pembayaran} \\
+  & Pilih chain (ETH, BTC, SOL, dll) dan masukkan nominal di terminal \\ \hline
+
+2 & \textbf{Pengguna tap kartu} → NFC terdeteksi otomatis (< 300 ms) \\ \hline
+
+3 & \textbf{Seleksi \& autentikasi aman} \\
+  & Terminal → Kartu: \texttt{SELECT} Universal Wallet Applet \\
+  & Terminal <-> Kartu: \textbf{SCP03 Mutual Authentication} → session key AES-GCM \\ \hline
+
+4 & \textbf{Minta alamat sesuai chain} \\
+  & Terminal → Kartu: \texttt{GET\_ADDRESS}(m/44'/60'/0'/0/0 untuk ETH, dll) \\
+  & Kartu derivasi alamat secara deterministik (BIP-44) → kirim ke terminal \\
+  & Terminal tampilkan alamat + amount di E-Ink display \\ \hline
+
+5 & \textbf{Build transaksi di backend} \\
+  & Terminal → Rust Backend: kirim chain + address + amount \\
+  & Backend ambil nonce/UTXO/gas price terkini → buat unsigned transaction \\
+  & Backend → Terminal: kirim hash transaksi yang harus ditandatangani \\ \hline
+
+6 & \textbf{User konfirmasi \& signing di kartu} \\
+  & Terminal tampilkan detail transaksi di E-Ink: \\
+  & \quad → Amount, alamat tujuan, fee, chain \\
+  & User tekan [v] → diminta masukkan PIN di keypad fisik terminal \\
+  & Terminal → Kartu: \texttt{SIGN\_HASH}(tx\_hash, derivation\_path) \\
+  & Kartu: verifikasi PIN → derivasi private key → sign dengan curve yang tepat \\
+  & Kartu → Terminal: kembalikan signature (r, s, v atau ed25519 sig) \\ \hline
+
+7 & \textbf{Broadcast transaksi} \\
+  & Terminal kirim signed transaction ke Rust Backend \\
+  & Backend broadcast ke blockchain target \\
+  & Blockchain konfirmasi → Backend kirim Tx Hash ke terminal \\
+  & Terminal tampilkan: 'Payment Successful v' + Tx Hash + vibration \\ \hline
+
+\end{longtable}
+
+\vspace{16pt}
+
+\noindent
+\textbf{Keunggulan Universal Payment Flow Ini}
+
+\begin{itemize}[leftmargin=*]
+\item \textbf{Satu tap, semua chain} — user tidak perlu pilih wallet atau buka aplikasi
+\item \textbf{100\% air-gapped signing} — private key tidak pernah keluar dari JavaCard
+\item \textbf{Verifikasi transaksi di E-Ink fisik} → tidak bisa di-phishing
+\item \textbf{PIN dimasukkan di terminal, bukan ponsel} → anti keylogger/remote attack
+\item \textbf{Merchant tidak pernah melihat seed/private key}
+\item \textbf{Latensi total < 4 detik} (tap → success) di semua chain
+\item \textbf{Kompatibel dengan semua merchant terminal} yang mendukung protokol ini
+\end{itemize}
+
+\vspace{12pt}
+\hrule
+\vspace{6pt}
+\footnotesize\textit{Gambar~\ref{fig:universal-payment-flow} menunjukkan alur pembayaran universal yang sama persis digunakan oleh Tangem Pay, Satochip Pay, dan beberapa proyek enterprise blockchain payment di tahun 2024--2025 — kini diimplementasikan dengan lebih aman, cepat, dan user-friendly.}
+
+\section{Implementasi Mobile App dengan Chain Selector}
+
+\begin{lstlisting}[language=Java, title={Flutter: Multi-Chain Wallet UI}]
+import 'package:flutter/material.dart';
+import 'package:nfc_manager/nfc_manager.dart';
+
+class UniversalWalletApp extends StatefulWidget {
+  @override
+  _UniversalWalletAppState createState() => _UniversalWalletAppState();
+}
+
+class _UniversalWalletAppState extends State<UniversalWalletApp> {
+  String selectedChain = 'ethereum';
+  Map<String, ChainConfig> chains = {
+    'ethereum': ChainConfig(
+      name: 'Ethereum',
+      coinType: 60,
+      path: "m/44'/60'/0'/0/0",
+      curve: 'secp256k1',
+      icon: Icons.currency_exchange,
+    ),
+    'bitcoin': ChainConfig(
+      name: 'Bitcoin',
+      coinType: 0,
+      path: "m/44'/0'/0'/0/0",
+      curve: 'secp256k1',
+      icon: Icons.currency_bitcoin,
+    ),
+    'solana': ChainConfig(
+      name: 'Solana',
+      coinType: 501,
+      path: "m/44'/501'/0'/0'",
+      curve: 'ed25519',
+      icon: Icons.flash_on,
+    ),
+    'base': ChainConfig(
+      name: 'Base L2',
+      coinType: 60,
+      path: "m/44'/60'/0'/0/0",
+      curve: 'secp256k1',
+      icon: Icons.layers,
+    ),
+  };
+
+  Future<void> getAddressFromCard() async {
+    await NfcManager.instance.startSession(
+      onDiscovered: (NfcTag tag) async {
+        final iso7816 = Iso7816.from(tag);
+        if (iso7816 != null) {
+          // Select applet
+          await iso7816.sendCommand(/*SELECT APDU*/);
+          
+          // Get address for selected chain
+          final chain = chains[selectedChain]!;
+          final pathBytes = utf8.encode(chain.path);
+          
+          final response = await iso7816.sendCommand(
+            cla: 0x80,
+            ins: 0x62, // GET_ADDRESS
+            p1: 0x00,
+            p2: 0x00,
+            data: pathBytes,
+          );
+          
+          setState(() {
+            currentAddress = decodeAddress(response, chain.curve);
+          });
+        }
+      },
+    );
+  }
+  
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text('Universal Wallet')),
+      body: Column(
+        children: [
+          // Chain Selector
+          DropdownButton<String>(
+            value: selectedChain,
+            items: chains.keys.map((chain) => DropdownMenuItem(
+              value: chain,
+              child: Row(
+                children: [
+                  Icon(chains[chain]!.icon),
+                  SizedBox(width: 8),
+                  Text(chains[chain]!.name),
+                ],
+              ),
+            )).toList(),
+            onChanged: (value) => setState(() => selectedChain = value!),
+          ),
+          
+          // Address Display
+          Card(
+            child: ListTile(
+              title: Text('Your ${chains[selectedChain]!.name} Address'),
+              subtitle: Text(currentAddress ?? 'Tap card to view'),
+            ),
+          ),
+          
+          // Action Buttons
+          ElevatedButton.icon(
+            icon: Icon(Icons.nfc),
+            label: Text('Tap Card'),
+            onPressed: getAddressFromCard,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class ChainConfig {
+  final String name;
+  final int coinType;
+  final String path;
+  final String curve;
+  final IconData icon;
+  
+  ChainConfig({
+    required this.name,
+    required this.coinType,
+    required this.path,
+    required this.curve,
+    required this.icon,
+  });
+}
+\end{lstlisting}
+
+\section{Backup \& Recovery Interface}
+Antarmuka untuk membantu pengguna melakukan backup dan recovery mnemonic:
+
+\begin{figure}[!htbp]
+    \centering
+    \includesvg[width=0.92\linewidth]{image8.svg}   % langsung .svg
+    \caption{Backup \& Recovery Flow — Universal \& Future-Proof}
+    \label{fig:recovery}
+\end{figure}
+
+\begin{lstlisting}[language=, title={Recovery Flow Diagram}]
+graph TD
+    subgraph "Backup Process"
+        B1[User requests backup] --> B2[Enter PIN + PUK]
+        B2 --> B3[Card displays mnemonic one word at a time]
+        B3 --> B4[User writes each word]
+        B4 --> B5[Verify: Enter word 3, 7, 15, 24]
+        B5 --> B6[Backup confirmed]
+    end
+    
+    subgraph "Recovery Process"
+        R1[User gets new card] --> R2[Select 'Recover Wallet']
+        R2 --> R3[Enter 24 mnemonic words]
+        R3 --> R4[App validates checksum]
+        R4 --> R5[Send encrypted to new card]
+        R5 --> R6[Set new PIN]
+        R6 --> R7[Wallet restored on new card]
+    end
+    
+    subgraph "Cross-Platform Recovery"
+        C1[Card lost/damaged] --> C2[Open Metamask/Ledger]
+        C2 --> C3[Enter same 24 words]
+        C3 --> C4[Access same addresses]
+        Note over C4: Universal compatibility!
+    end
+\end{lstlisting}
+
+% =========================================
+% BAB 5
+% =========================================
+\chapter{Infrastruktur Backend Rust}
+
+\section{Arsitektur Multi-Chain Backend}
+Backend Rust harus mampu mengorkestrasi transaksi untuk berbagai blockchain dengan abstraksi yang bersih.
+
+\begin{lstlisting}[language=, title={Arsitektur Backend Multi-Chain}]
+graph TD
+    subgraph "API Gateway"
+        AXUM[Axum HTTP Server]
+        AUTH[Auth Middleware - Device HMAC]
+        RATE[Rate Limiter]
+    end
+    
+    subgraph "Chain Abstraction Layer"
+        ROUTER[Transaction Router]
+        
+        subgraph "EVM Chains"
+            ETH[Ethereum Handler]
+            BASE[Base L2 Handler]
+            ARB[Arbitrum Handler]
+            POLY[Polygon Handler]
+        end
+        
+        subgraph "Non-EVM Chains"
+            BTC[Bitcoin Handler]
+            SOL[Solana Handler]
+            DOT[Polkadot Handler]
+        end
+    end
+    
+    subgraph "ERC-4337 Module (EVM Only)"
+        AA[Account Abstraction]
+        PM[Paymaster Integration]
+        BUNDLER[Bundler Client]
+    end
+    
+    subgraph "Persistence"
+        PG[(PostgreSQL)]
+        REDIS[(Redis Cache)]
+    end
+    
+    AXUM --> AUTH --> RATE --> ROUTER
+    
+    ROUTER --> ETH --> AA
+    ROUTER --> BASE --> AA
+    ROUTER --> ARB --> AA
+    ROUTER --> POLY --> AA
+    
+    ROUTER --> BTC
+    ROUTER --> SOL
+    ROUTER --> DOT
+    
+    AA --> PM --> BUNDLER
+\end{lstlisting}
+
+\section{Trait-Based Chain Abstraction}
+
+\begin{lstlisting}[language=Rust, title={Chain Abstraction dengan Rust Traits}]
+use async_trait::async_trait;
+
+/// Trait utama untuk semua blockchain
+#[async_trait]
+pub trait BlockchainHandler: Send + Sync {
+    /// Coin type sesuai SLIP-44
+    fn coin_type(&self) -> u32;
+    
+    /// Curve yang digunakan
+    fn curve(&self) -> CryptoCurve;
+    
+    /// Default derivation path
+    fn default_path(&self) -> String;
+    
+    /// Build unsigned transaction
+    async fn build_transaction(
+        &self,
+        from: &str,
+        to: &str,
+        amount: &str,
+        data: Option<Vec<u8>>,
+    ) -> Result<UnsignedTransaction, ChainError>;
+    
+    /// Get transaction hash for signing
+    fn get_signing_hash(&self, tx: &UnsignedTransaction) -> [u8; 32];
+    
+    /// Combine transaction with signature
+    fn apply_signature(
+        &self,
+        tx: UnsignedTransaction,
+        signature: Signature,
+    ) -> SignedTransaction;
+    
+    /// Broadcast to network
+    async fn broadcast(&self, tx: SignedTransaction) -> Result<TxHash, ChainError>;
+    
+    /// Get address from public key
+    fn pubkey_to_address(&self, pubkey: &[u8]) -> String;
+}
+
+pub enum CryptoCurve {
+    Secp256k1,
+    Ed25519,
+    Sr25519,
+}
+
+/// Implementasi untuk Ethereum/Base L2
+pub struct EthereumHandler {
+    rpc_url: String,
+    chain_id: u64,
+    provider: Provider<Http>,
+}
+
+#[async_trait]
+impl BlockchainHandler for EthereumHandler {
+    fn coin_type(&self) -> u32 { 60 }
+    fn curve(&self) -> CryptoCurve { CryptoCurve::Secp256k1 }
+    fn default_path(&self) -> String { "m/44'/60'/0'/0/0".into() }
+    
+    async fn build_transaction(
+        &self,
+        from: &str,
+        to: &str,
+        amount: &str,
+    ) -> Result<UnsignedTransaction, ChainError> {
+        let nonce = self.provider.get_transaction_count(from).await?;
+        let gas_price = self.provider.get_gas_price().await?;
+        
+        Ok(UnsignedTransaction::Evm(EvmTransaction {
+            chain_id: self.chain_id,
+            nonce,
+            to: to.parse()?,
+            value: amount.parse()?,
+            gas_limit: 21000.into(),
+            gas_price,
+            data: vec![],
+        }))
+    }
+    
+    fn pubkey_to_address(&self, pubkey: &[u8]) -> String {
+        // Keccak256(pubkey[1..]) -> last 20 bytes -> hex with 0x prefix
+        let hash = keccak256(&pubkey[1..]);
+        format!("0x{}", hex::encode(&hash[12..]))
+    }
+    // ... implementasi lainnya
+}
+
+/// Implementasi untuk Solana
+pub struct SolanaHandler {
+    rpc_url: String,
+    client: RpcClient,
+}
+
+#[async_trait]
+impl BlockchainHandler for SolanaHandler {
+    fn coin_type(&self) -> u32 { 501 }
+    fn curve(&self) -> CryptoCurve { CryptoCurve::Ed25519 }
+    fn default_path(&self) -> String { "m/44'/501'/0'/0'".into() }
+    
+    fn pubkey_to_address(&self, pubkey: &[u8]) -> String {
+        // Solana address = base58 encoded public key
+        bs58::encode(pubkey).into_string()
+    }
+    // ... implementasi lainnya
+}
+\end{lstlisting}
+
+\section{Chain Router \& Dynamic Dispatch}
+
+\begin{lstlisting}[language=Rust, title={Chain Router dengan Dynamic Dispatch}]
+use std::collections::HashMap;
+use std::sync::Arc;
+
+pub struct ChainRouter {
+    handlers: HashMap<String, Arc<dyn BlockchainHandler>>,
+}
+
+impl ChainRouter {
+    pub fn new() -> Self {
+        let mut handlers: HashMap<String, Arc<dyn BlockchainHandler>> = HashMap::new();
+        
+        // Register EVM chains
+        handlers.insert("ethereum".into(), Arc::new(EthereumHandler::new(
+            "https://eth-mainnet.g.alchemy.com/v2/...",
+            1,
+        )));
+        
+        handlers.insert("base".into(), Arc::new(EthereumHandler::new(
+            "https://mainnet.base.org",
+            8453,
+        )));
+        
+        handlers.insert("arbitrum".into(), Arc::new(EthereumHandler::new(
+            "https://arb1.arbitrum.io/rpc",
+            42161,
+        )));
+        
+        // Register non-EVM chains
+        handlers.insert("bitcoin".into(), Arc::new(BitcoinHandler::new(
+            "https://blockstream.info/api",
+        )));
+        
+        handlers.insert("solana".into(), Arc::new(SolanaHandler::new(
+            "https://api.mainnet-beta.solana.com",
+        )));
+        
+        Self { handlers }
+    }
+    
+    pub fn get_handler(&self, chain: &str) -> Option<Arc<dyn BlockchainHandler>> {
+        self.handlers.get(chain).cloned()
+    }
+    
+    pub fn get_derivation_path(&self, chain: &str, account: u32, index: u32) -> String {
+        match self.handlers.get(chain) {
+            Some(handler) => {
+                let coin_type = handler.coin_type();
+                format!("m/44'/{}'/{}'/0/{}", coin_type, account, index)
+            }
+            None => panic!("Unknown chain: {}", chain),
+        }
+    }
+}
+
+// Axum handler untuk transaction dispatch
+pub async fn dispatch_transaction(
+    State(router): State<Arc<ChainRouter>>,
+    Json(request): Json<TransactionRequest>,
+) -> Result<Json<TransactionResponse>, AppError> {
+    let handler = router.get_handler(&request.chain)
+        .ok_or(AppError::UnsupportedChain)?;
+    
+    // 1. Build transaction
+    let unsigned_tx = handler.build_transaction(
+        &request.from,
+        &request.to,
+        &request.amount,
+        request.data,
+    ).await?;
+    
+    // 2. Get hash for signing
+    let tx_hash = handler.get_signing_hash(&unsigned_tx);
+    
+    // Response: Kirim hash ke terminal untuk ditandatangani kartu
+    Ok(Json(TransactionResponse {
+        tx_hash: hex::encode(tx_hash),
+        unsigned_tx: serde_json::to_value(&unsigned_tx)?,
+        derivation_path: handler.default_path(),
+    }))
+}
+\end{lstlisting}
+
+\section{ERC-4337 Integration untuk EVM Chains}
+
+\begin{lstlisting}[language=Rust, title={Account Abstraction untuk Gasless Transactions}]
+pub struct AccountAbstractionModule {
+    entry_point: Address,
+    bundler_url: String,
+    paymaster_url: String,
+}
+
+impl AccountAbstractionModule {
+    /// Build UserOperation untuk smart wallet
+    pub async fn build_user_operation(
+        &self,
+        sender: Address,          // Smart wallet address
+        call_data: Vec<u8>,       // Encoded function call
+        signature: Bytes,         // Signature dari kartu
+    ) -> Result<UserOperation, Error> {
+        // Get nonce dari smart wallet
+        let nonce = self.get_wallet_nonce(sender).await?;
+        
+        // Estimate gas
+        let gas_estimates = self.estimate_gas(sender, &call_data).await?;
+        
+        // Request paymaster sponsorship
+        let paymaster_data = self.request_sponsorship(sender, &call_data).await?;
+        
+        Ok(UserOperation {
+            sender,
+            nonce,
+            init_code: Bytes::new(), // Empty jika wallet sudah deployed
+            call_data: Bytes::from(call_data),
+            call_gas_limit: gas_estimates.call_gas,
+            verification_gas_limit: gas_estimates.verification_gas,
+            pre_verification_gas: gas_estimates.pre_verification,
+            max_fee_per_gas: gas_estimates.max_fee,
+            max_priority_fee_per_gas: gas_estimates.priority_fee,
+            paymaster_and_data: paymaster_data,
+            signature,
+        })
+    }
+    
+    /// Send UserOperation ke Bundler
+    pub async fn send_user_operation(
+        &self,
+        user_op: UserOperation,
+    ) -> Result<H256, Error> {
+        let client = reqwest::Client::new();
+        
+        let response = client
+            .post(&self.bundler_url)
+            .json(&json!({
+                "jsonrpc": "2.0",
+                "method": "eth_sendUserOperation",
+                "params": [user_op, self.entry_point],
+                "id": 1
+            }))
+            .send()
+            .await?;
+        
+        let result: JsonRpcResponse = response.json().await?;
+        Ok(result.result.parse()?)
+    }
+}
+\end{lstlisting}
+
+\section{Database Schema untuk Multi-Chain}
+
+\begin{lstlisting}[language=SQL, title={PostgreSQL Schema untuk Universal Wallet}]
+-- Tabel untuk menyimpan alamat yang di-derive
+CREATE TABLE derived_addresses (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    card_id VARCHAR(64) NOT NULL,          -- Identifier kartu (hash dari master pubkey)
+    chain VARCHAR(20) NOT NULL,             -- 'ethereum', 'bitcoin', 'solana', etc.
+    derivation_path VARCHAR(100) NOT NULL,  -- "m/44'/60'/0'/0/0"
+    address VARCHAR(100) NOT NULL,          -- Alamat hasil derivasi
+    created_at TIMESTAMP DEFAULT NOW(),
+    
+    UNIQUE(card_id, derivation_path)
+);
+
+-- Tabel transaksi universal
+CREATE TABLE transactions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    card_id VARCHAR(64) NOT NULL,
+    chain VARCHAR(20) NOT NULL,
+    from_address VARCHAR(100) NOT NULL,
+    to_address VARCHAR(100) NOT NULL,
+    amount NUMERIC(36, 18) NOT NULL,
+    asset VARCHAR(20) DEFAULT 'NATIVE',     -- 'NATIVE', 'USDC', 'USDT', etc.
+    tx_hash VARCHAR(100),
+    status VARCHAR(20) NOT NULL,            -- 'pending', 'confirmed', 'failed'
+    derivation_path VARCHAR(100),
+    created_at TIMESTAMP DEFAULT NOW(),
+    confirmed_at TIMESTAMP
+);
+
+-- Index untuk query performa tinggi
+CREATE INDEX idx_transactions_card_chain ON transactions(card_id, chain);
+CREATE INDEX idx_addresses_card ON derived_addresses(card_id);
+\end{lstlisting}
+
+% =========================================
+% BAB 6
+% =========================================
+\chapter{Arsitektur Blockchain \& Smart Contract}
+
+\section{Smart Contract Wallet dengan Seed-Derived Keys}
+Smart Contract Wallet pada jaringan EVM (Base L2) didesain untuk bekerja dengan kunci yang di-derive dari seed card.
+
+\begin{lstlisting}[language=, title={Diagram: Smart Wallet Architecture}]
+graph TD
+    subgraph "Off-Chain (Card)"
+        SEED[Master Seed in SE]
+        DERIVE[Key Derivation Engine]
+        SIGN[Signature Generation]
+    end
+    
+    subgraph "On-Chain (Base L2)"
+        FACTORY[Account Factory]
+        WALLET[Smart Contract Wallet]
+        ENTRY[ERC-4337 EntryPoint]
+        PM[Paymaster]
+    end
+    
+    SEED --> DERIVE
+    DERIVE --> |Private Key| SIGN
+    DERIVE --> |Public Key| FACTORY
+    
+    FACTORY --> |CREATE2| WALLET
+    SIGN --> |Signature| ENTRY
+    ENTRY --> WALLET
+    PM --> |Gas Sponsorship| ENTRY
+\end{lstlisting}
+
+\section{Counterfactual Address dengan BIP-44 Path}
+Alamat smart wallet dapat dihitung sebelum deployment menggunakan public key yang di-derive dari seed:
+
+\begin{lstlisting}[language=Rust, title={Perhitungan Counterfactual Address}]
+use alloy_primitives::{Address, B256, keccak256};
+
+pub fn calculate_counterfactual_address(
+    factory_address: Address,
+    implementation: Address,
+    owner_pubkey: &[u8],          // Public key dari derivation path
+    salt: B256,
+) -> Address {
+    // 1. Encode initialization data
+    let init_data = encode_init_data(owner_pubkey);
+    
+    // 2. Calculate init code hash
+    let init_code = [
+        // Minimal proxy creation code
+        hex::decode("3d602d80600a3d3981f3363d3d373d3d3d363d73").unwrap(),
+        implementation.as_slice().to_vec(),
+        hex::decode("5af43d82803e903d91602b57fd5bf3").unwrap(),
+    ].concat();
+    
+    let init_code_hash = keccak256(&init_code);
+    
+    // 3. CREATE2 address calculation
+    // address = keccak256(0xff ++ factory ++ salt ++ init_code_hash)[12:]
+    let mut data = vec![0xff];
+    data.extend_from_slice(factory_address.as_slice());
+    data.extend_from_slice(salt.as_slice());
+    data.extend_from_slice(init_code_hash.as_slice());
+    
+    let hash = keccak256(&data);
+    Address::from_slice(&hash[12..])
+}
+
+/// Derive salt dari BIP-44 path untuk deterministic address
+pub fn path_to_salt(derivation_path: &str) -> B256 {
+    keccak256(derivation_path.as_bytes())
+}
+\end{lstlisting}
+
+\section{Multi-Signer Wallet untuk Enhanced Security}
+Wallet mendukung multiple signers yang di-derive dari path berbeda:
+
+\begin{lstlisting}[language=, title={Multi-Path Signer Configuration}]
+graph LR
+    subgraph "Single Seed"
+        SEED[Master Seed]
+    end
+    
+    subgraph "Derived Signers"
+        SEED --> P1["m/44'/60'/0'/0/0 <br/> Primary Signer (Card)"]
+        SEED --> P2["m/44'/60'/0'/1/0 <br/> Mobile Backup"]
+        SEED --> P3["m/44'/60'/0'/2/0 <br/> Recovery Key"]
+    end
+    
+    subgraph "Smart Wallet"
+        SW[Smart Contract Wallet]
+        P1 --> |Primary Auth| SW
+        P2 --> |2FA Approval| SW
+        P3 --> |Recovery Only| SW
+    end
+\end{lstlisting}
+
+\section{Solidity Contract: Universal Wallet}
+
+\begin{lstlisting}[language=, title={UniversalWallet.sol - Simplified}]
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.19;
+
+import "@account-abstraction/contracts/core/BaseAccount.sol";
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+
+contract UniversalWallet is BaseAccount {
+    using ECDSA for bytes32;
+    
+    // Signer yang di-derive dari BIP-44 path
+    address public primarySigner;      // m/44'/60'/0'/0/0
+    address public secondarySigner;    // m/44'/60'/0'/1/0 (optional MFA)
+    
+    // Configuration
+    bool public requireDualSignature;
+    uint256 public dailyLimit;
+    uint256 public spentToday;
+    uint256 public lastSpendDate;
+    
+    // Events
+    event SignerRotated(address oldSigner, address newSigner, string derivationPath);
+    event DailyLimitUpdated(uint256 newLimit);
+    
+    constructor(
+        IEntryPoint _entryPoint,
+        address _primarySigner,
+        address _secondarySigner
+    ) {
+        _entryPoint = _entryPoint;
+        primarySigner = _primarySigner;
+        secondarySigner = _secondarySigner;
+    }
+    
+    /// @notice Validate signature dari card (dan optional MFA)
+    function _validateSignature(
+        UserOperation calldata userOp,
+        bytes32 userOpHash
+    ) internal override returns (uint256 validationData) {
+        bytes32 hash = userOpHash.toEthSignedMessageHash();
+        
+        if (requireDualSignature) {
+            // Expect 2 signatures concatenated (65 bytes each)
+            require(userOp.signature.length == 130, "Invalid sig length");
+            
+            bytes memory sig1 = userOp.signature[0:65];
+            bytes memory sig2 = userOp.signature[65:130];
+            
+            address recovered1 = hash.recover(sig1);
+            address recovered2 = hash.recover(sig2);
+            
+            if (recovered1 != primarySigner || recovered2 != secondarySigner) {
+                return SIG_VALIDATION_FAILED;
+            }
+        } else {
+            // Single signature mode
+            address recovered = hash.recover(userOp.signature);
+            if (recovered != primarySigner) {
+                return SIG_VALIDATION_FAILED;
+            }
+        }
+        
+        return 0; // Valid
+    }
+    
+    /// @notice Rotate signer saat card diganti (dengan seed yang sama)
+    /// @dev New signer harus di-derive dari path yang sama
+    function rotateSigner(
+        address newSigner,
+        bytes calldata guardianSignatures  // Signatures dari guardians
+    ) external {
+        // Verify guardian approval
+        require(_verifyGuardianApproval(guardianSignatures), "Guardian approval failed");
+        
+        emit SignerRotated(primarySigner, newSigner, "m/44'/60'/0'/0/0");
+        primarySigner = newSigner;
+    }
+    
+    /// @notice Execute transaction
+    function execute(
+        address dest,
+        uint256 value,
+        bytes calldata data
+    ) external onlyEntryPoint {
+        _checkDailyLimit(value);
+        
+        (bool success, ) = dest.call{value: value}(data);
+        require(success, "Execution failed");
+    }
+    
+    function _checkDailyLimit(uint256 amount) internal {
+        if (block.timestamp / 1 days > lastSpendDate) {
+            spentToday = 0;
+            lastSpendDate = block.timestamp / 1 days;
+        }
+        
+        require(spentToday + amount <= dailyLimit, "Daily limit exceeded");
+        spentToday += amount;
+    }
+}
+\end{lstlisting}
+
+\section{Account Factory dengan Path-Based Salt}
+
+\begin{lstlisting}[language=, title={UniversalWalletFactory.sol}]
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.19;
+
+import "@openzeppelin/contracts/utils/Create2.sol";
+
+contract UniversalWalletFactory {
+    address public immutable walletImplementation;
+    IEntryPoint public immutable entryPoint;
+    
+    event WalletCreated(
+        address indexed wallet,
+        address indexed primarySigner,
+        bytes32 salt,
+        string derivationPath
+    );
+    
+    /// @notice Calculate wallet address from public key and derivation path
+    /// @dev Salt = keccak256(derivationPath)
+    function getAddress(
+        address primarySigner,
+        address secondarySigner,
+        string calldata derivationPath
+    ) public view returns (address) {
+        bytes32 salt = keccak256(abi.encodePacked(derivationPath, primarySigner));
+        
+        bytes memory initCode = abi.encodePacked(
+            type(UniversalWallet).creationCode,
+            abi.encode(entryPoint, primarySigner, secondarySigner)
+        );
+        
+        return Create2.computeAddress(salt, keccak256(initCode));
+    }
+    
+    /// @notice Deploy wallet (JIT on first transaction)
+    function createWallet(
+        address primarySigner,
+        address secondarySigner,
+        string calldata derivationPath
+    ) external returns (UniversalWallet wallet) {
+        bytes32 salt = keccak256(abi.encodePacked(derivationPath, primarySigner));
+        
+        wallet = new UniversalWallet{salt: salt}(
+            entryPoint,
+            primarySigner,
+            secondarySigner
+        );
+        
+        emit WalletCreated(
+            address(wallet),
+            primarySigner,
+            salt,
+            derivationPath
+        );
+    }
+}
+\end{lstlisting}
+
+\section{Social Recovery dengan Seed-Based Guardians}
+Guardian dapat juga di-derive dari seed yang sama, memungkinkan self-recovery:
+
+\begin{lstlisting}[language=, title={Recovery Configuration}]
+graph TD
+    subgraph "User's Seed"
+        SEED[Master Seed - Written on Paper]
+    end
+    
+    subgraph "Derived Guardians"
+        SEED --> G1["m/44'/60'/1'/0/0 <br/> Guardian 1: Spouse's Phone"]
+        SEED --> G2["m/44'/60'/2'/0/0 <br/> Guardian 2: Safety Deposit Box"]
+        SEED --> G3["m/44'/60'/3'/0/0 <br/> Guardian 3: Lawyer"]
+    end
+    
+    subgraph "Recovery Scenarios"
+        S1[Card Lost] --> |2-of-3 Guardians| REC[Rotate to New Card]
+        S2[Self Recovery] --> |Import seed to new card| REC2[Same addresses restored]
+    end
+\end{lstlisting}
+
+% =========================================
+% BAB 7
+% =========================================
+\chapter{Protokol Keamanan \& Kepatuhan}
+
+\section{Seed Security: Generation \& Storage}
+
+\subsection{Entropy Requirements}
+Kualitas entropi menentukan keamanan keseluruhan sistem:
+
+\begin{itemize}
+    \item \textbf{Source:} Hardware TRNG di dalam Secure Element (bukan software PRNG)
+    \item \textbf{Minimum Entropy:} 256-bit untuk 24 kata mnemonic
+    \item \textbf{Health Checks:} NIST SP 800-90B compliance untuk RNG testing
+    \item \textbf{Conditioning:} AES-CBC-MAC untuk whitening jika diperlukan
+\end{itemize}
+
+\subsection{Storage Encryption}
+Seed disimpan dengan multiple layer encryption:
+
+\begin{lstlisting}[language=, title={Seed Storage Security Layers}]
+graph TD
+    subgraph "Layer 1: Hardware Protection"
+        SE[Secure Element EAL6+]
+        TAMPER[Tamper Detection]
+        ZERO[Auto-Zeroization]
+    end
+    
+    subgraph "Layer 2: Encryption at Rest"
+        AES[AES-256-GCM Encryption]
+        KEK[Key Encryption Key from PIN]
+        SALT[Per-card Random Salt]
+    end
+    
+    subgraph "Layer 3: Access Control"
+        PIN[PIN Verification - Argon2id]
+        RETRY[Retry Counter - Max 3]
+        PUK[PUK for Unlock - Max 10]
+    end
+    
+    SE --> AES
+    TAMPER --> ZERO
+    PIN --> KEK
+    KEK --> AES
+\end{lstlisting}
+
+\section{Mnemonic Backup Security}
+
+\subsection{Safe Backup Practices}
+Panduan untuk pengguna dalam menyimpan mnemonic:
+
+\begin{enumerate}
+    \item \textbf{Physical Medium:} Tulis di kertas atau metal plate (fireproof/waterproof)
+    \item \textbf{Never Digital:} Jangan foto, screenshot, atau simpan di cloud
+    \item \textbf{Split Storage (SLIP-39):} Bagi menjadi 3 shares, butuh 2 untuk recover
+    \item \textbf{Location Diversity:} Simpan di lokasi geografis berbeda
+    \item \textbf{Inheritance Planning:} Instruksi untuk ahli waris
+\end{enumerate}
+
+\subsection{SLIP-39 Shamir Backup (Opsional)}
+
+\begin{lstlisting}[language=Rust, title={SLIP-39 Shamir Secret Sharing}]
+use slip39::{Share, ShareGroup, RecoveryData};
+
+pub struct ShamirBackup {
+    threshold: u8,      // Minimum shares needed
+    total_shares: u8,   // Total shares created
+}
+
+impl ShamirBackup {
+    /// Split master seed into Shamir shares
+    pub fn create_shares(
+        &self,
+        master_secret: &[u8; 32],
+        passphrase: &str,
+    ) -> Result<Vec<Share>, Error> {
+        // Create share group: 2-of-3 configuration
+        let groups = vec![
+            ShareGroup::new(self.threshold, self.total_shares)?,
+        ];
+        
+        let shares = slip39::generate_mnemonics(
+            1,                    // Iteration exponent
+            &groups,
+            master_secret,
+            passphrase.as_bytes(),
+        )?;
+        
+        // Each share is 20-33 words (SLIP-39 wordlist)
+        Ok(shares)
+    }
+    
+    /// Recover master seed from shares
+    pub fn recover_secret(
+        shares: &[Share],
+        passphrase: &str,
+    ) -> Result<[u8; 32], Error> {
+        slip39::combine_mnemonics(shares, passphrase.as_bytes())
+    }
+}
+
+// Contoh penggunaan:
+// Share 1: "academic acid acrobat romp..." (simpan di rumah)
+// Share 2: "academic acid beard romp..." (simpan di bank)
+// Share 3: "academic acid ceramic romp..." (simpan di lawyer)
+// Butuh minimal 2 dari 3 untuk recover
+\end{lstlisting}
+
+\section{Key Ceremony untuk Kartu Produksi}
+
+\begin{lstlisting}[language=, title={Sequence: Secure Key Ceremony}]
+sequenceDiagram
+    participant HSM as Factory HSM
+    participant CARD as Blank JavaCard
+    participant QC as Quality Control
+    participant PKG as Secure Packaging
+
+    Note over HSM: Air-gapped, shielded room
+    
+    HSM->>CARD: Inject Transport Keys
+    HSM->>CARD: Install Universal Wallet Applet
+    HSM->>CARD: Set OP_READY state
+    
+    Note over CARD: NO SEED YET - Kartu kosong
+    
+    CARD->>QC: Functionality Test
+    QC->>QC: Verify crypto operations
+    QC->>QC: Check tamper detection
+    
+    QC->>PKG: Approved card
+    PKG->>PKG: Seal with security tape
+    PKG->>PKG: Record serial number
+    
+    Note over PKG: Seed akan di-generate<br/>oleh END USER saat aktivasi
+\end{lstlisting}
+
+\textbf{Poin Kritis:} Seed \textbf{TIDAK PERNAH} di-generate di pabrik. Seed dibuat oleh pengguna saat aktivasi pertama, memastikan bahwa bahkan perusahaan tidak mengetahui seed pengguna.
+
+\section{Fraud Detection untuk Multi-Chain}
+
+\begin{lstlisting}[language=Rust, title={Multi-Chain Fraud Detection Engine}]
+pub struct FraudDetector {
+    velocity_rules: HashMap<String, VelocityRule>,
+    geo_analyzer: GeoAnalyzer,
+    pattern_matcher: PatternMatcher,
+}
+
+pub struct VelocityRule {
+    max_tx_per_minute: u32,
+    max_value_per_hour: Decimal,
+    max_unique_recipients_per_day: u32,
+}
+
+impl FraudDetector {
+    pub async fn analyze_transaction(
+        &self,
+        tx: &TransactionRequest,
+        card_history: &CardHistory,
+    ) -> RiskAssessment {
+        let mut risk_score = 0;
+        let mut flags = vec![];
+        
+        // 1. Velocity Check
+        if card_history.tx_last_minute >= self.velocity_rules[&tx.chain].max_tx_per_minute {
+            risk_score += 30;
+            flags.push(RiskFlag::HighVelocity);
+        }
+        
+        // 2. Cross-chain Pattern Analysis
+        // Jika tiba-tiba aktif di chain yang tidak pernah digunakan
+        if !card_history.used_chains.contains(&tx.chain) {
+            risk_score += 10;
+            flags.push(RiskFlag::NewChainActivity);
+        }
+        
+        // 3. Geographic Anomaly
+        // Menggunakan IP terminal untuk estimasi lokasi
+        if let Some(geo_risk) = self.geo_analyzer.check_impossible_travel(
+            card_history.last_location,
+            tx.terminal_location,
+            card_history.last_tx_time,
+        ) {
+            risk_score += 50;
+            flags.push(RiskFlag::ImpossibleTravel);
+        }
+        
+        // 4. Time Pattern
+        // Transaksi di jam tidak biasa
+        if self.pattern_matcher.is_unusual_time(tx.timestamp, card_history) {
+            risk_score += 15;
+            flags.push(RiskFlag::UnusualTime);
+        }
+        
+        // 5. Large Value Transfer
+        let threshold = self.get_threshold_for_chain(&tx.chain);
+        if tx.amount > threshold {
+            risk_score += 20;
+            flags.push(RiskFlag::LargeValue);
+        }
+        
+        RiskAssessment {
+            score: risk_score,
+            flags,
+            action: self.determine_action(risk_score),
+        }
+    }
+    
+    fn determine_action(&self, score: u32) -> RiskAction {
+        match score {
+            0..=20 => RiskAction::Allow,
+            21..=50 => RiskAction::RequireMFA,
+            51..=80 => RiskAction::RequireManualReview,
+            _ => RiskAction::Block,
+        }
+    }
+}
+\end{lstlisting}
+
+\section{Compliance: AML/KYC untuk Universal Wallet}
+
+\begin{itemize}
+    \item \textbf{Tiered KYC:}
+    \begin{itemize}
+        \item Tier 1 (Anonymous): Max Rp 1 juta/bulan, only P2P
+        \item Tier 2 (Basic KYC): Max Rp 50 juta/bulan, email + phone
+        \item Tier 3 (Full KYC): Unlimited, ID verification + liveness
+    \end{itemize}
+    
+    \item \textbf{Chain-Specific Compliance:}
+    \begin{itemize}
+        \item \textbf{EVM Chains:} Integrasi dengan Chainalysis/TRM Labs untuk screening alamat
+        \item \textbf{Bitcoin:} UTXO analysis untuk deteksi mixing/tumbling
+        \item \textbf{Privacy Coins:} Tidak didukung untuk compliance (Monero, Zcash shielded)
+    \end{itemize}
+    
+    \item \textbf{Travel Rule Compliance (FATF):}
+    \begin{itemize}
+        \item Untuk transfer > USD 1000, data originator dan beneficiary harus dicatat
+        \item Integrasi dengan protokol seperti TRUST atau Shyft Network
+    \end{itemize}
+\end{itemize}
+
+\section{Emergency Procedures}
+
+\subsection{Card Compromise Response}
+
+\begin{lstlisting}[language=, title={Emergency Response Flow}]
+graph TD
+    subgraph "Detection"
+        D1[User Report: Card Stolen]
+        D2[Fraud Alert: Suspicious Activity]
+        D3[System Alert: Impossible Travel]
+    end
+    
+    subgraph "Immediate Actions"
+        D1 --> F1[Freeze Smart Wallet on all EVM chains]
+        D2 --> F1
+        D3 --> F1
+        
+        F1 --> F2[Blacklist Card ID in Backend]
+        F2 --> F3[Notify all connected terminals]
+    end
+    
+    subgraph "Recovery Options"
+        F3 --> R1{User has seed backup?}
+        R1 -->|Yes| R2[Import to new card]
+        R1 -->|No| R3[Social Recovery via Guardians]
+        
+        R2 --> R4[Rotate signer on Smart Wallet]
+        R3 --> R4
+        
+        R4 --> R5[Unfreeze with new signer]
+    end
+    
+    subgraph "Post-Incident"
+        R5 --> P1[Incident Report Generated]
+        P1 --> P2[User Review Transaction History]
+        P2 --> P3[Dispute Unauthorized Transactions]
+    end
+\end{lstlisting}
+
+\subsection{System-Wide Emergency Kill Switch}
+
+\begin{lstlisting}[language=Rust, title={Emergency Shutdown Mechanism}]
+pub struct EmergencyController {
+    multisig_threshold: u8,
+    authorized_signers: Vec<Address>,
+    is_frozen: AtomicBool,
+}
+
+impl EmergencyController {
+    /// Freeze all operations (requires multisig)
+    pub async fn global_freeze(
+        &self,
+        signatures: Vec<Signature>,
+        reason: &str,
+    ) -> Result<(), Error> {
+        // Verify multisig threshold
+        let valid_sigs = self.verify_multisig(&signatures)?;
+        require!(valid_sigs >= self.multisig_threshold, "Insufficient signatures");
+        
+        // Set global freeze
+        self.is_frozen.store(true, Ordering::SeqCst);
+        
+        // Log emergency event
+        tracing::error!(
+            reason = reason,
+            signers = ?signatures.iter().map(|s| s.signer).collect::<Vec<_>>(),
+            "EMERGENCY: Global system freeze activated"
+        );
+        
+        // Notify all services
+        self.broadcast_freeze_notification().await?;
+        
+        // Pause all smart contract wallets
+        self.pause_all_contracts().await?;
+        
+        Ok(())
+    }
+    
+    /// Check if operations are allowed
+    pub fn is_operational(&self) -> bool {
+        !self.is_frozen.load(Ordering::SeqCst)
+    }
+}
+\end{lstlisting}
+
+% =========================================
+% BAB 8
+% =========================================
+\chapter{Rencana Pengujian \& Deployment}
+
+\section{Testing Strategy untuk Universal Wallet}
+
+\subsection{Unit Testing: Cryptographic Functions}
+
+\begin{lstlisting}[language=Rust, title={BIP-39/32/44 Test Vectors}]
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    /// Test vector dari BIP-39 specification
+    #[test]
+    fn test_bip39_vector_1() {
+        let entropy = hex::decode(
+            "00000000000000000000000000000000"
+        ).unwrap();
+        
+        let mnemonic = entropy_to_mnemonic(&entropy).unwrap();
+        
+        assert_eq!(
+            mnemonic,
+            "abandon abandon abandon abandon abandon abandon \
+             abandon abandon abandon abandon abandon about"
+        );
+        
+        let seed = mnemonic_to_seed(&mnemonic, "TREZOR");
+        
+        assert_eq!(
+            hex::encode(&seed),
+            "c55257c360c07c72029aebc1b53c05ed0362ada38ead3e3e9efa3708e53495531f09a6987599d18264c1e1c92f2cf141630c7a3c4ab7c81b2f001698e7463b04"
+        );
+    }
+    
+    /// Test BIP-44 derivation for Ethereum
+    #[test]
+    fn test_bip44_ethereum_derivation() {
+        let mnemonic = "abandon abandon abandon abandon abandon abandon \
+                        abandon abandon abandon abandon abandon about";
+        let seed = mnemonic_to_seed(mnemonic, "");
+        
+        let master = ExtendedKey::from_seed(&seed).unwrap();
+        let derived = master.derive_path("m/44'/60'/0'/0/0").unwrap();
+        
+        let address = pubkey_to_eth_address(&derived.get_public_key());
+        
+        // Known address for this test vector
+        assert_eq!(
+            address,
+            "0x9858EfFD232B4033E47d90003D41EC34EcaEda94"
+        );
+    }
+    
+    /// Test multi-chain derivation consistency
+    #[test]
+    fn test_multichain_derivation() {
+        let seed = generate_test_seed();
+        let master = ExtendedKey::from_seed(&seed).unwrap();
+        
+        // Same seed, different chains, different addresses
+        let eth_key = master.derive_path("m/44'/60'/0'/0/0").unwrap();
+        let btc_key = master.derive_path("m/44'/0'/0'/0/0").unwrap();
+        let sol_key = master.derive_path("m/44'/501'/0'/0'").unwrap();
+        
+        // Verify all keys are different
+        assert_ne!(eth_key.private_key, btc_key.private_key);
+        assert_ne!(btc_key.private_key, sol_key.private_key);
+        
+        // Verify deterministic - same derivation = same key
+        let eth_key_2 = master.derive_path("m/44'/60'/0'/0/0").unwrap();
+        assert_eq!(eth_key.private_key, eth_key_2.private_key);
+    }
+}
+\end{lstlisting}
+
+\subsection{Integration Testing: Card to Blockchain}
+
+\begin{lstlisting}[language=, title={End-to-End Test Scenario}]
+sequenceDiagram
+    participant Test as Test Framework
+    participant Card as JavaCard Simulator
+    participant Backend as Rust Backend
+    participant Anvil as Local Blockchain (Anvil)
+
+    Note over Test: Setup
+    Test->>Anvil: Deploy EntryPoint, Factory, Paymaster
+    Test->>Card: Initialize with test seed
+    
+    Note over Test: Test 1: Address Derivation
+    Test->>Card: GET_ADDRESS(m/44'/60'/0'/0/0)
+    Card-->>Test: 0xABC...
+    Test->>Backend: Verify address matches expected
+    
+    Note over Test: Test 2: Transaction Signing
+    Test->>Backend: Build ETH transfer tx
+    Backend-->>Test: Unsigned tx hash
+    Test->>Card: SIGN_HASH(hash)
+    Card-->>Test: Signature (r,s,v)
+    Test->>Test: Verify signature recovers to correct address
+    
+    Note over Test: Test 3: Smart Wallet Interaction
+    Test->>Backend: Create UserOperation
+    Test->>Card: Sign UserOp hash
+    Card-->>Test: Signature
+    Test->>Anvil: Submit to EntryPoint
+    Anvil-->>Test: Transaction receipt
+    Test->>Test: Verify state changes
+    
+    Note over Test: Test 4: Multi-Chain
+    loop For each chain [ETH, BTC, SOL]
+        Test->>Card: GET_ADDRESS(chain_path)
+        Card-->>Test: Chain-specific address
+        Test->>Test: Verify address format
+    end
+\end{lstlisting}
+
+\subsection{Stress Testing: Concurrent Operations}
+
+\begin{lstlisting}[language=Rust, title={Concurrent Transaction Test}]
+use tokio::sync::Semaphore;
+use std::sync::Arc;
+
+#[tokio::test]
+async fn test_concurrent_transactions() {
+    let backend = setup_test_backend().await;
+    let semaphore = Arc::new(Semaphore::new(100)); // Max 100 concurrent
+    
+    let mut handles = vec![];
+    
+    // Simulate 1000 concurrent transaction requests
+    for i in 0..1000 {
+        let backend = backend.clone();
+        let permit = semaphore.clone().acquire_owned().await.unwrap();
+        
+        let handle = tokio::spawn(async move {
+            let _permit = permit;
+            
+            let request = TransactionRequest {
+                chain: if i % 3 == 0 { "ethereum" } else if i % 3 == 1 { "base" } else { "polygon" },
+                from: format!("0x{:040x}", i),
+                to: format!("0x{:040x}", i + 1),
+                amount: "1000000", // 1 USDC
+            };
+            
+            let start = std::time::Instant::now();
+            let result = backend.build_transaction(request).await;
+            let duration = start.elapsed();
+            
+            (result.is_ok(), duration)
+        });
+        
+        handles.push(handle);
+    }
+    
+    let results: Vec<_> = futures::future::join_all(handles).await;
+    
+    let successes = results.iter().filter(|r| r.as_ref().unwrap().0).count();
+    let avg_latency: f64 = results.iter()
+        .map(|r| r.as_ref().unwrap().1.as_millis() as f64)
+        .sum::<f64>() / results.len() as f64;
+    
+    println!("Success rate: {}/{}", successes, results.len());
+    println!("Average latency: {:.2}ms", avg_latency);
+    
+    assert!(successes as f64 / results.len() as f64 > 0.99); // 99% success rate
+    assert!(avg_latency < 100.0); // Under 100ms average
+}
+\end{lstlisting}
+
+\section{Security Audit Checklist}
+
+\begin{center}
+\begin{longtable}{|p{4cm}|p{6cm}|l|l|}
+\hline
+\textbf{Area} & \textbf{Item} & \textbf{Priority} & \textbf{Status} \\ \hline
+\endfirsthead
+\hline
+\textbf{Area} & \textbf{Item} & \textbf{Priority} & \textbf{Status} \\ \hline
+\endhead
+
+\multirow{4}{*}{Seed Security} 
+& Entropy source quality (NIST SP 800-90B) & Critical & Pending \\ \cline{2-4}
+& Seed never leaves Secure Element & Critical & Pending \\ \cline{2-4}
+& PIN brute-force protection & Critical & Pending \\ \cline{2-4}
+& Memory zeroization after use & High & Pending \\ \hline
+
+\multirow{3}{*}{Key Derivation}
+& BIP-32/39/44 compliance & Critical & Pending \\ \cline{2-4}
+& Hardened derivation for sensitive paths & High & Pending \\ \cline{2-4}
+& Cross-chain address collision prevention & Medium & Pending \\ \hline
+
+\multirow{4}{*}{Smart Contract}
+& Signature validation (ERC-4337) & Critical & Pending \\ \cline{2-4}
+& Reentrancy protection & Critical & Pending \\ \cline{2-4}
+& Upgrade mechanism security (UUPS) & High & Pending \\ \cline{2-4}
+& Access control for admin functions & High & Pending \\ \hline
+
+\multirow{3}{*}{Backend}
+& Input validation \& sanitization & High & Pending \\ \cline{2-4}
+& Rate limiting \& DoS protection & High & Pending \\ \cline{2-4}
+& Secure key management (HSM) & Critical & Pending \\ \hline
+
+\multirow{2}{*}{Communication}
+& SCP03 implementation correctness & Critical & Pending \\ \cline{2-4}
+& TLS 1.3 for all external APIs & High & Pending \\ \hline
+
+\end{longtable}
+\end{center}
+
+\section{Deployment Strategy}
+
+\subsection{Phased Rollout Plan}
+
+\begin{lstlisting}[language=, title={Deployment Phases}]
+gantt
+    title Universal Wallet Card Deployment Roadmap
+    dateFormat YYYY-MM-DD
+    
+    section Phase 1: Alpha
+    Internal Testing (Team Only)        :a1, 2026-01-01, 4w
+    Bug Fixes & Optimization            :a2, after a1, 2w
+    Security Audit Round 1              :a3, after a2, 3w
+    
+    section Phase 2: Beta
+    Closed Beta (100 users)             :b1, after a3, 4w
+    Multi-chain Testing (Base + ETH)    :b2, after a3, 4w
+    Security Audit Round 2              :b3, after b1, 2w
+    
+    section Phase 3: Limited Release
+    Pilot Merchants (10 locations)      :c1, after b3, 6w
+    Add Solana Support                  :c2, after b3, 4w
+    Add Bitcoin Support                 :c3, after c2, 4w
+    
+    section Phase 4: Public Launch
+    Open Registration                   :d1, after c1, 2w
+    Marketing Campaign                  :d2, after d1, 4w
+    Scale Infrastructure                :d3, after d1, 8w
+\end{lstlisting}
+
+\subsection{Multi-Chain Deployment Order}
+
+\begin{center}
+\begin{tabular}{|l|l|p{6cm}|}
+\hline
+\textbf{Phase} & \textbf{Chains} & \textbf{Rationale} \\ \hline
+1 & Base L2 & Primary chain, lowest fees, ERC-4337 native \\ \hline
+2 & Ethereum Mainnet & High-value transactions, established ecosystem \\ \hline
+3 & Polygon, Arbitrum & Popular L2s, EVM compatible \\ \hline
+4 & Solana & High TPS, different curve (ed25519) \\ \hline
+5 & Bitcoin & Most valuable, UTXO model complexity \\ \hline
+6 & Cosmos, Polkadot & Ecosystem expansion \\ \hline
+\end{tabular}
+\end{center}
+
+\subsection{Smart Contract Deployment Script}
+
+\begin{lstlisting}[language=Rust, title={Deployment Script dengan Alloy}]
+use alloy::{
+    providers::{Provider, ProviderBuilder},
+    signers::local::PrivateKeySigner,
+    network::EthereumWallet,
+};
+
+pub async fn deploy_universal_wallet_system(
+    rpc_url: &str,
+    deployer_key: &str,
+) -> Result<DeploymentResult, Error> {
+    // Setup provider
+    let signer: PrivateKeySigner = deployer_key.parse()?;
+    let wallet = EthereumWallet::from(signer);
+    let provider = ProviderBuilder::new()
+        .with_recommended_fillers()
+        .wallet(wallet)
+        .on_http(rpc_url.parse()?);
+    
+    // 1. Deploy EntryPoint (if not exists)
+    let entry_point = if let Some(existing) = get_existing_entrypoint(&provider).await? {
+        existing
+    } else {
+        deploy_contract(&provider, ENTRYPOINT_BYTECODE, &[]).await?
+    };
+    println!("EntryPoint: {}", entry_point);
+    
+    // 2. Deploy Wallet Implementation
+    let wallet_impl = deploy_contract(
+        &provider,
+        UNIVERSAL_WALLET_BYTECODE,
+        &[entry_point.into()],
+    ).await?;
+    println!("Wallet Implementation: {}", wallet_impl);
+    
+    // 3. Deploy Account Factory
+    let factory = deploy_contract(
+        &provider,
+        FACTORY_BYTECODE,
+        &[wallet_impl.into(), entry_point.into()],
+    ).await?;
+    println!("Account Factory: {}", factory);
+    
+    // 4. Deploy Paymaster (with initial deposit)
+    let paymaster = deploy_contract(
+        &provider,
+        PAYMASTER_BYTECODE,
+        &[entry_point.into()],
+    ).await?;
+    
+    // Deposit ETH to paymaster
+    deposit_to_paymaster(&provider, &paymaster, parse_ether("10")?).await?;
+    println!("Paymaster: {} (funded with 10 ETH)", paymaster);
+    
+    // 5. Verify all contracts
+    verify_deployment(&provider, &entry_point, &wallet_impl, &factory, &paymaster).await?;
+    
+    Ok(DeploymentResult {
+        entry_point,
+        wallet_implementation: wallet_impl,
+        factory,
+        paymaster,
+        chain_id: provider.get_chain_id().await?,
+    })
+}
+\end{lstlisting}
+
+\section{Monitoring \& Observability}
+
+\begin{lstlisting}[language=, title={Monitoring Architecture}]
+graph TD
+    subgraph "Data Sources"
+        BE[Rust Backend]
+        SC[Smart Contracts]
+        TERM[Terminals]
+    end
+    
+    subgraph "Collection"
+        PROM[Prometheus]
+        LOKI[Loki - Logs]
+        TEMPO[Tempo - Traces]
+    end
+    
+    subgraph "Visualization"
+        GRAF[Grafana Dashboards]
+    end
+    
+    subgraph "Alerting"
+        ALERT[AlertManager]
+        PD[PagerDuty]
+        SLACK[Slack]
+    end
+    
+    BE --> |Metrics| PROM
+    BE --> |Logs| LOKI
+    BE --> |Traces| TEMPO
+    
+    SC --> |Events| PROM
+    TERM --> |Health| PROM
+    
+    PROM --> GRAF
+    LOKI --> GRAF
+    TEMPO --> GRAF
+    
+    PROM --> ALERT
+    ALERT --> PD
+    ALERT --> SLACK
+\end{lstlisting}
+
+\subsection{Key Metrics to Monitor}
+
+\begin{lstlisting}[language=Rust, title={Prometheus Metrics Definition}]
+use prometheus::{
+    register_counter_vec, register_histogram_vec, register_gauge,
+    CounterVec, HistogramVec, Gauge,
+};
+
+lazy_static! {
+    // Transaction metrics
+    pub static ref TX_TOTAL: CounterVec = register_counter_vec!(
+        "universal_wallet_transactions_total",
+        "Total transactions processed",
+        &["chain", "status", "type"]
+    ).unwrap();
+    
+    pub static ref TX_LATENCY: HistogramVec = register_histogram_vec!(
+        "universal_wallet_transaction_latency_seconds",
+        "Transaction processing latency",
+        &["chain", "phase"],
+        vec![0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0]
+    ).unwrap();
+    
+    // Card metrics
+    pub static ref CARD_OPERATIONS: CounterVec = register_counter_vec!(
+        "universal_wallet_card_operations_total",
+        "Card operations performed",
+        &["operation", "result"]
+    ).unwrap();
+    
+    // Chain health
+    pub static ref CHAIN_BLOCK_HEIGHT: Gauge = register_gauge!(
+        "universal_wallet_chain_block_height",
+        "Current block height per chain"
+    ).unwrap();
+    
+    // Security metrics
+    pub static ref FRAUD_DETECTIONS: CounterVec = register_counter_vec!(
+        "universal_wallet_fraud_detections_total",
+        "Fraud detection events",
+        &["type", "action_taken"]
+    ).unwrap();
+}
+
+// Usage in handlers
+pub async fn record_transaction_metrics(chain: &str, phase: &str, duration: f64) {
+    TX_LATENCY.with_label_values(&[chain, phase]).observe(duration);
+}
+\end{lstlisting}
+
+% =========================================
+% BAB 9
+% =========================================
+\chapter{Kompatibilitas \& Interoperabilitas}
+
+\section{Kompatibilitas dengan Wallet Standar}
+Salah satu keunggulan utama pendekatan BIP-39/44 adalah kompatibilitas penuh dengan ekosistem dompet yang sudah ada.
+
+\subsection{Recovery di Wallet Lain}
+
+\begin{center}
+\begin{longtable}{|l|l|p{5cm}|}
+\hline
+\textbf{Wallet} & \textbf{Supported Chains} & \textbf{Recovery Steps} \\ \hline
+\endfirsthead
+\hline
+\textbf{Wallet} & \textbf{Supported Chains} & \textbf{Recovery Steps} \\ \hline
+\endhead
+
+Ledger Nano & All supported & Settings > Security > Recovery Phrase > Enter 24 words \\ \hline
+Trezor & BTC, ETH, EVM & Device > Advanced > Recovery > Enter words \\ \hline
+MetaMask & ETH, EVM L2s & Import Wallet > Secret Recovery Phrase \\ \hline
+Trust Wallet & Multi-chain & Settings > Wallets > Import > Recovery Phrase \\ \hline
+Phantom & Solana, ETH & Settings > Secret Recovery Phrase > Import \\ \hline
+Exodus & Multi-chain & Wallet > Restore > 12/24 word phrase \\ \hline
+\end{longtable}
+\end{center}
+
+\subsection{Path Compatibility Matrix}
+
+\begin{lstlisting}[language=, title={Derivation Path Compatibility}]
+graph LR
+    subgraph "Universal Card Seed"
+        SEED[24-word Mnemonic]
+    end
+    
+    subgraph "Ethereum Ecosystem"
+        SEED --> |m/44'/60'/0'/0/x| MM[MetaMask]
+        SEED --> |m/44'/60'/0'/0/x| LED[Ledger ETH]
+        SEED --> |m/44'/60'/0'/0/x| TW[Trust Wallet]
+    end
+    
+    subgraph "Bitcoin"
+        SEED --> |m/44'/0'/0'/0/x| ELE[Electrum Legacy]
+        SEED --> |m/84'/0'/0'/0/x| ELEB[Electrum Bech32]
+        SEED --> |m/49'/0'/0'/0/x| ELES[Electrum SegWit]
+    end
+    
+    subgraph "Solana"
+        SEED --> |m/44'/501'/0'/0'| PHAN[Phantom]
+        SEED --> |m/44'/501'/0'/0'| SOFL[Solflare]
+    end
+    
+    Note right of SEED: Same seed = Same addresses everywhere
+\end{lstlisting}
+
+\section{Import dari Wallet Lain}
+Pengguna dapat mengimpor seed dari dompet existing ke Universal Wallet Card:
+
+\begin{lstlisting}[language=, title={Sequence: Import from Existing Wallet}]
+sequenceDiagram
+    participant User
+    participant App as Mobile App
+    participant Card as New Universal Card
+    participant OW as Old Wallet (e.g., Ledger)
+
+    User->>OW: Access recovery phrase
+    OW-->>User: Display 24 words
+    User->>User: Write down words securely
+    
+    User->>App: Open Universal Wallet App
+    App->>App: Select "Import Existing Wallet"
+    User->>App: Enter 24 words
+    
+    App->>App: Validate BIP-39 checksum
+    App->>Card: NFC: IMPORT_SEED command
+    
+    Note over Card: Secure Channel established
+    Card->>Card: Store encrypted seed
+    Card->>Card: Derive master key
+    
+    Card-->>App: Import successful
+    
+    App->>Card: GET_ADDRESS(m/44'/60'/0'/0/0)
+    Card-->>App: 0xABC...
+    
+    App->>App: Verify address matches old wallet
+    App-->>User: Import verified! Same addresses.
+\end{lstlisting}
+
+\section{WalletConnect Integration}
+Untuk berinteraksi dengan dApps, Universal Wallet Card dapat digunakan melalui WalletConnect:
+
+\begin{lstlisting}[language=Rust, title={WalletConnect v2 Handler}]
+use walletconnect_client::{Client, Session, SignRequest};
+
+pub struct UniversalWalletConnector {
+    wc_client: Client,
+    card_interface: Arc<dyn CardInterface>,
+    supported_chains: Vec<ChainInfo>,
+}
+
+impl UniversalWalletConnector {
+    pub async fn connect(&self, uri: &str) -> Result<Session, Error> {
+        // Parse WalletConnect URI
+        let pairing = self.wc_client.pair(uri).await?;
+        
+        // Get addresses for all supported chains from card
+        let mut accounts = vec![];
+        for chain in &self.supported_chains {
+            let address = self.card_interface
+                .get_address(&chain.derivation_path)
+                .await?;
+            accounts.push(format!("{}:{}", chain.caip2_id, address));
+        }
+        
+        // Approve session with multi-chain support
+        let session = self.wc_client.approve_session(
+            pairing,
+            SessionApproval {
+                accounts,
+                chains: self.supported_chains.iter()
+                    .map(|c| c.caip2_id.clone())
+                    .collect(),
+                methods: vec![
+                    "eth_sendTransaction",
+                    "eth_signTypedData_v4",
+                    "personal_sign",
+                    "solana_signTransaction",
+                ],
+                events: vec!["chainChanged", "accountsChanged"],
+            },
+        ).await?;
+        
+        Ok(session)
+    }
+    
+    pub async fn handle_sign_request(
+        &self,
+        request: SignRequest,
+    ) -> Result<String, Error> {
+        match request.method.as_str() {
+            "personal_sign" => {
+                let message = request.params.get_message()?;
+                
+                // Show message to user for confirmation
+                self.display_message_for_approval(&message).await?;
+                
+                // Request signature from card
+                let hash = keccak256(format!("\x19Ethereum Signed Message:\n{}{}", 
+                    message.len(), message).as_bytes());
+                
+                let signature = self.card_interface
+                    .sign_hash(&hash, "m/44'/60'/0'/0/0")
+                    .await?;
+                
+                Ok(hex::encode(signature))
+            }
+            "eth_sendTransaction" => {
+                let tx = request.params.get_transaction()?;
+                
+                // Build UserOperation for smart wallet
+                let user_op = self.build_user_operation(&tx).await?;
+                
+                // Sign with card
+                let signature = self.card_interface
+                    .sign_hash(&user_op.hash(), "m/44'/60'/0'/0/0")
+                    .await?;
+                
+                // Submit to bundler
+                let tx_hash = self.submit_user_operation(user_op, signature).await?;
+                
+                Ok(tx_hash)
+            }
+            _ => Err(Error::UnsupportedMethod(request.method)),
+        }
+    }
+}
+\end{lstlisting}
+
+\section{Cross-Chain Asset Management}
+Dengan satu seed, pengguna dapat mengelola aset di berbagai chain melalui satu interface:
+
+\begin{lstlisting}[language=, title={Unified Portfolio View}]
+graph TD
+    subgraph "Universal Wallet Card"
+        SEED[Single Seed]
+    end
+    
+    subgraph "Derived Addresses"
+        SEED --> ETH_ADDR[Ethereum: 0xABC...]
+        SEED --> BASE_ADDR[Base: 0xABC...]
+        SEED --> BTC_ADDR[Bitcoin: bc1q...]
+        SEED --> SOL_ADDR[Solana: 7xKX...]
+    end
+    
+    subgraph "Assets Across Chains"
+        ETH_ADDR --> |$5,000| ETH_BAL[ETH + USDC]
+        BASE_ADDR --> |$2,000| BASE_BAL[ETH + USDC]
+        BTC_ADDR --> |$10,000| BTC_BAL[BTC]
+        SOL_ADDR --> |$1,500| SOL_BAL[SOL + USDC]
+    end
+    
+    subgraph "Unified View"
+        TOTAL[Total Portfolio: $18,500]
+        ETH_BAL --> TOTAL
+        BASE_BAL --> TOTAL
+        BTC_BAL --> TOTAL
+        SOL_BAL --> TOTAL
+    end
+\end{lstlisting}
+
+% =========================================
+% LAMPIRAN
+% =========================================
+\appendix
+
+% =========================================
+% LAMPIRAN A: RENCANA KERJA
+% =========================================
+\chapter{Rencana Kerja \& Roadmap}
+
+\section{Roadmap Pengembangan MVP (16 Minggu)}
+Mengingat kompleksitas tambahan untuk mendukung multi-chain dan BIP standards, timeline diperpanjang menjadi 16 minggu.
+
+\subsection{Fase 1: Foundation \& BIP Implementation (Minggu 1-5)}
+
+\begin{itemize}
+    \item \textbf{Minggu 1-2: BIP-39 Implementation}
+    \begin{itemize}
+        \item Implementasi entropy generation di JavaCard
+        \item Wordlist embedding dan checksum calculation
+        \item Unit tests dengan official test vectors
+    \end{itemize}
+    
+    \item \textbf{Minggu 3-4: BIP-32/44 Key Derivation}
+    \begin{itemize}
+        \item HMAC-SHA512 implementation di Secure Element
+        \item Child key derivation (hardened \& normal)
+        \item Multi-curve support (secp256k1, ed25519)
+    \end{itemize}
+    
+    \item \textbf{Minggu 5: Seed Storage \& Security}
+    \begin{itemize}
+        \item AES-256-GCM encryption untuk seed storage
+        \item PIN/PUK management dengan Argon2id
+        \item Tamper detection integration
+    \end{itemize}
+\end{itemize}
+
+\subsection{Fase 2: Multi-Chain Backend (Minggu 6-9)}
+
+\begin{itemize}
+    \item \textbf{Minggu 6-7: Chain Abstraction Layer}
+    \begin{itemize}
+        \item Trait-based blockchain handler design
+        \item Ethereum/Base L2 implementation
+        \item Transaction building \& signing flow
+    \end{itemize}
+    
+    \item \textbf{Minggu 8: ERC-4337 Integration}
+    \begin{itemize}
+        \item UserOperation builder
+        \item Paymaster integration
+        \item Bundler communication
+    \end{itemize}
+    
+    \item \textbf{Minggu 9: Additional Chains}
+    \begin{itemize}
+        \item Solana handler (ed25519)
+        \item Bitcoin handler (UTXO model)
+        \item Address format validation
+    \end{itemize}
+\end{itemize}
+
+\subsection{Fase 3: Smart Contracts \& Terminal (Minggu 10-13)}
+
+\begin{itemize}
+    \item \textbf{Minggu 10-11: Smart Contract Development}
+    \begin{itemize}
+        \item UniversalWallet.sol implementation
+        \item AccountFactory dengan CREATE2
+        \item Multi-signer support
+    \end{itemize}
+    
+    \item \textbf{Minggu 12: Terminal Development}
+    \begin{itemize}
+        \item ESP32 firmware dengan chain selector
+        \item SCP03 secure channel
+        \item Display UI untuk multi-chain
+    \end{itemize}
+    
+    \item \textbf{Minggu 13: Mobile App}
+    \begin{itemize}
+        \item Flutter NFC integration
+        \item Chain selector UI
+        \item Backup/recovery flow
+    \end{itemize}
+\end{itemize}
+
+\subsection{Fase 4: Testing \& Launch (Minggu 14-16)}
+
+\begin{itemize}
+    \item \textbf{Minggu 14: Integration Testing}
+    \begin{itemize}
+        \item End-to-end tests semua chain
+        \item Cross-platform recovery testing
+        \item Stress testing
+    \end{itemize}
+    
+    \item \textbf{Minggu 15: Security Audit}
+    \begin{itemize}
+        \item Smart contract audit
+        \item Penetration testing
+        \item Cryptographic review
+    \end{itemize}
+    
+    \item \textbf{Minggu 16: Deployment}
+    \begin{itemize}
+        \item Mainnet deployment (Base L2 first)
+        \item Documentation finalization
+        \item Beta user onboarding
+    \end{itemize}
+\end{itemize}
+
+\section{Gantt Chart}
+
+\begin{lstlisting}[language=, title={Gantt Chart: Universal Wallet Card (16 Minggu)}]
+gantt
+    title Universal Wallet Card Development
+    dateFormat YYYY-MM-DD
+    
+    section Phase 1: BIP Standards
+    BIP-39 Mnemonic               :a1, 2026-01-01, 2w
+    BIP-32/44 Derivation          :a2, after a1, 2w
+    Seed Security & Storage       :a3, after a2, 1w
+    
+    section Phase 2: Multi-Chain Backend
+    Chain Abstraction Layer       :b1, after a3, 2w
+    ERC-4337 Integration          :b2, after b1, 1w
+    Solana & Bitcoin Handlers     :b3, after b2, 1w
+    
+    section Phase 3: Contracts & Apps
+    Smart Contract Development    :c1, after b3, 2w
+    Terminal Firmware             :c2, after b3, 2w
+    Mobile App Development        :c3, after c1, 1w
+    
+    section Phase 4: Launch
+    Integration Testing           :d1, after c3, 1w
+    Security Audit                :d2, after d1, 1w
+    Mainnet Deployment            :d3, after d2, 1w
+\end{lstlisting}
+
+\section{Resource Allocation}
+
+\begin{center}
+\begin{tabular}{|l|p{8cm}|l|}
+\hline
+\textbf{Role} & \textbf{Responsibilities} & \textbf{Allocation} \\ \hline
+Embedded/JavaCard Engineer & BIP implementation, Secure Element, ESP32 & Full-time \\ \hline
+Rust Backend Developer & Multi-chain handlers, ERC-4337, API & Full-time \\ \hline
+Blockchain/Solidity Developer & Smart contracts, deployment, audit prep & Full-time \\ \hline
+Mobile Developer & Flutter app, NFC, UI/UX & Part-time \\ \hline
+Security Engineer & Audit coordination, penetration testing & Part-time \\ \hline
+\end{tabular}
+\end{center}
+
+% =========================================
+% LAMPIRAN B: REFERENSI IMPLEMENTASI TEKNIS
+% =========================================
+\chapter{Detail Implementasi Teknis}
+
+\section{B.1 BIP-39 Wordlist (English - Excerpt)}
+Wordlist lengkap terdiri dari 2048 kata. Berikut adalah excerpt:
+
+\begin{lstlisting}[language=, title={BIP-39 English Wordlist (First 50 words)}]
+abandon, ability, able, about, above, absent, absorb, abstract, 
+absurd, abuse, access, accident, account, accuse, achieve, acid,
+acoustic, acquire, across, act, action, actor, actress, actual,
+adapt, add, addict, address, adjust, admit, adult, advance,
+advice, aerobic, affair, afford, afraid, again, age, agent,
+agree, ahead, aim, air, airport, aisle, alarm, album, alcohol,
+alert, ...
+\end{lstlisting}
+
+\textbf{Catatan:} Wordlist lengkap tersedia di \url{https://github.com/bitcoin/bips/blob/master/bip-0039/english.txt}
+
+\section{B.2 JavaCard Applet: Universal Wallet}
+
+\begin{lstlisting}[language=Java, title={UniversalWalletApplet.java - Core Structure}]
+package com.universalwallet;
+
+import javacard.framework.*;
+import javacard.security.*;
+import javacardx.crypto.*;
+
+public class UniversalWalletApplet extends Applet {
+    
+    // Constants
+    private static final byte INS_GENERATE_SEED = (byte) 0x40;
+    private static final byte INS_IMPORT_SEED = (byte) 0x42;
+    private static final byte INS_GET_PUBKEY = (byte) 0x60;
+    private static final byte INS_GET_ADDRESS = (byte) 0x62;
+    private static final byte INS_SIGN_HASH = (byte) 0x70;
+    private static final byte INS_VERIFY_PIN = (byte) 0x20;
+    
+    // Secure storage
+    private byte[] encryptedSeed;           // 64 bytes (512-bit seed)
+    private byte[] masterPrivateKey;        // 32 bytes
+    private byte[] masterChainCode;         // 32 bytes
+    private byte[] pinHash;                 // 32 bytes (Argon2id output)
+    
+    // Crypto objects
+    private RandomData rng;
+    private MessageDigest sha256;
+    private MessageDigest sha512;
+    private Signature ecdsaSecp256k1;
+    private Cipher aesCipher;
+    private AESKey storageKey;
+    
+    // State
+    private byte pinRetryCounter;
+    private boolean isPinVerified;
+    private boolean isSeedInitialized;
+    
+    protected UniversalWalletApplet() {
+        // Initialize crypto primitives
+        rng = RandomData.getInstance(RandomData.ALG_TRNG);
+        sha256 = MessageDigest.getInstance(MessageDigest.ALG_SHA_256, false);
+        sha512 = MessageDigest.getInstance(MessageDigest.ALG_SHA_512, false);
+        
+        // ECDSA with secp256k1 (if hardware supported)
+        ecdsaSecp256k1 = Signature.getInstance(
+            Signature.ALG_ECDSA_SHA_256, false
+        );
+        
+        // AES for seed encryption
+        aesCipher = Cipher.getInstance(Cipher.ALG_AES_GCM, false);
+        storageKey = (AESKey) KeyBuilder.buildKey(
+            KeyBuilder.TYPE_AES, KeyBuilder.LENGTH_AES_256, false
+        );
+        
+        // Allocate secure memory
+        encryptedSeed = JCSystem.makeTransientByteArray(
+            (short) 80, JCSystem.CLEAR_ON_DESELECT  // 64 + 16 for GCM tag
+        );
+        masterPrivateKey = JCSystem.makeTransientByteArray(
+            (short) 32, JCSystem.CLEAR_ON_DESELECT
+        );
+        masterChainCode = JCSystem.makeTransientByteArray(
+            (short) 32, JCSystem.CLEAR_ON_DESELECT
+        );
+        
+        pinRetryCounter = 3;
+        isPinVerified = false;
+        isSeedInitialized = false;
+        
+        register();
+    }
+    
+    public void process(APDU apdu) {
+        if (selectingApplet()) return;
+        
+        byte[] buffer = apdu.getBuffer();
+        byte ins = buffer[ISO7816.OFFSET_INS];
+        
+        switch (ins) {
+            case INS_VERIFY_PIN:
+                verifyPin(apdu);
+                break;
+            case INS_GENERATE_SEED:
+                requirePin();
+                generateSeed(apdu);
+                break;
+            case INS_IMPORT_SEED:
+                requirePin();
+                importSeed(apdu);
+                break;
+            case INS_GET_PUBKEY:
+                requirePin();
+                requireSeed();
+                getPublicKey(apdu);
+                break;
+            case INS_GET_ADDRESS:
+                requirePin();
+                requireSeed();
+                getAddress(apdu);
+                break;
+            case INS_SIGN_HASH:
+                requirePin();
+                requireSeed();
+                signHash(apdu);
+                break;
+            default:
+                ISOException.throwIt(ISO7816.SW_INS_NOT_SUPPORTED);
+        }
+    }
+    
+    private void generateSeed(APDU apdu) {
+        byte[] buffer = apdu.getBuffer();
+        
+        // Generate 256-bit entropy
+        byte[] entropy = JCSystem.makeTransientByteArray(
+            (short) 32, JCSystem.CLEAR_ON_DESELECT
+        );
+        rng.nextBytes(entropy, (short) 0, (short) 32);
+        
+        // Calculate BIP-39 checksum
+        sha256.reset();
+        sha256.doFinal(entropy, (short) 0, (short) 32, buffer, (short) 0);
+        byte checksum = buffer[0];  // First byte = 8-bit checksum for 256-bit entropy
+        
+        // Convert to mnemonic indices (implementation simplified)
+        // ... (convert 264 bits to 24 x 11-bit indices)
+        
+        // Derive seed using PBKDF2-HMAC-SHA512
+        // ... (2048 iterations with "mnemonic" + passphrase as salt)
+        
+        // Derive master key
+        deriveMasterKey();
+        
+        isSeedInitialized = true;
+        
+        // Return mnemonic words (one-time display)
+        // This should be done through secure display or encrypted channel
+    }
+    
+    private void deriveMasterKey() {
+        // HMAC-SHA512("Bitcoin seed", seed) -> master key + chain code
+        // First 32 bytes = master private key
+        // Last 32 bytes = master chain code
+        
+        // Implementation using available crypto primitives
+        byte[] hmacKey = {'B','i','t','c','o','i','n',' ','s','e','e','d'};
+        // ... HMAC-SHA512 implementation
+    }
+    
+    private void signHash(APDU apdu) {
+        byte[] buffer = apdu.getBuffer();
+        short dataLen = apdu.setIncomingAndReceive();
+        
+        // Parse: derivation path + hash to sign
+        // Format: [path_length (1 byte)] [path (variable)] [hash (32 bytes)]
+        
+        byte pathLen = buffer[ISO7816.OFFSET_CDATA];
+        short pathOffset = (short)(ISO7816.OFFSET_CDATA + 1);
+        short hashOffset = (short)(pathOffset + pathLen);
+        
+        // Derive private key for the given path
+        byte[] derivedKey = deriveKeyForPath(buffer, pathOffset, pathLen);
+        
+        // Sign the hash
+        ECPrivateKey privKey = (ECPrivateKey) KeyBuilder.buildKey(
+            KeyBuilder.TYPE_EC_FP_PRIVATE,
+            KeyBuilder.LENGTH_EC_FP_256,
+            false
+        );
+        privKey.setS(derivedKey, (short) 0, (short) 32);
+        
+        ecdsaSecp256k1.init(privKey, Signature.MODE_SIGN);
+        short sigLen = ecdsaSecp256k1.signPreComputedHash(
+            buffer, hashOffset, (short) 32,
+            buffer, (short) 0
+        );
+        
+        // Clear sensitive data
+        Util.arrayFillNonAtomic(derivedKey, (short) 0, (short) 32, (byte) 0);
+        
+        apdu.setOutgoingAndSend((short) 0, sigLen);
+    }
+    
+    private byte[] deriveKeyForPath(byte[] pathBuffer, short offset, short length) {
+        // Parse path string (e.g., "m/44'/60'/0'/0/0")
+        // For each level, perform child key derivation
+        
+        byte[] currentKey = new byte[32];
+        byte[] currentChainCode = new byte[32];
+        
+        Util.arrayCopy(masterPrivateKey, (short) 0, currentKey, (short) 0, (short) 32);
+        Util.arrayCopy(masterChainCode, (short) 0, currentChainCode, (short) 0, (short) 32);
+        
+        // ... parse and derive for each path component
+        
+        return currentKey;
+    }
+    
+    private void requirePin() {
+        if (!isPinVerified) {
+            ISOException.throwIt(ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED);
+        }
+    }
+    
+    private void requireSeed() {
+        if (!isSeedInitialized) {
+            ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
+        }
+    }
+}
+\end{lstlisting}
+
+\section{B.3 Rust Multi-Chain Transaction Builder}
+
+\begin{lstlisting}[language=Rust, title={Complete Transaction Builder}]
+use alloy::{
+    primitives::{Address, U256, Bytes, B256},
+    rpc::types::TransactionRequest,
+    sol_types::SolCall,
+};
+use solana_sdk::{
+    transaction::Transaction as SolanaTransaction,
+    message::Message,
+    pubkey::Pubkey,
+    system_instruction,
+};
+
+pub enum UnsignedTransaction {
+    Evm(EvmTransaction),
+    Bitcoin(BitcoinTransaction),
+    Solana(SolanaTransactionData),
+}
+
+pub struct EvmTransaction {
+    pub chain_id: u64,
+    pub nonce: u64,
+    pub to: Address,
+    pub value: U256,
+    pub gas_limit: u64,
+    pub max_fee_per_gas: U256,
+    pub max_priority_fee_per_gas: U256,
+    pub data: Bytes,
+}
+
+pub struct BitcoinTransaction {
+    pub inputs: Vec<BitcoinInput>,
+    pub outputs: Vec<BitcoinOutput>,
+    pub locktime: u32,
+}
+
+pub struct SolanaTransactionData {
+    pub recent_blockhash: [u8; 32],
+    pub instructions: Vec<SolanaInstruction>,
+    pub fee_payer: Pubkey,
+}
+
+impl EvmTransaction {
+    pub fn signing_hash(&self) -> B256 {
+        // EIP-1559 transaction encoding
+        let mut rlp = Vec::new();
+        // ... RLP encode transaction fields
+        keccak256(&rlp)
+    }
+    
+    pub fn with_signature(self, signature: &[u8]) -> SignedEvmTransaction {
+        let (r, s, v) = parse_signature(signature);
+        SignedEvmTransaction {
+            tx: self,
+            r,
+            s,
+            v,
+        }
+    }
+}
+
+impl SolanaTransactionData {
+    pub fn signing_hash(&self) -> [u8; 32] {
+        let message = Message::new(&self.instructions, Some(&self.fee_payer));
+        message.serialize()
+        // Solana signs the serialized message directly
+    }
+}
+
+// Chain-specific transaction builders
+pub async fn build_evm_transfer(
+    provider: &Provider,
+    from: Address,
+    to: Address,
+    amount: U256,
+    chain_id: u64,
+) -> Result<EvmTransaction, Error> {
+    let nonce = provider.get_transaction_count(from).await?;
+    let (max_fee, priority_fee) = provider.estimate_eip1559_fees().await?;
+    
+    Ok(EvmTransaction {
+        chain_id,
+        nonce,
+        to,
+        value: amount,
+        gas_limit: 21000,
+        max_fee_per_gas: max_fee,
+        max_priority_fee_per_gas: priority_fee,
+        data: Bytes::new(),
+    })
+}
+
+pub async fn build_erc20_transfer(
+    provider: &Provider,
+    from: Address,
+    token: Address,
+    to: Address,
+    amount: U256,
+    chain_id: u64,
+) -> Result<EvmTransaction, Error> {
+    // ERC20 transfer function signature
+    let data = encode_erc20_transfer(to, amount);
+    
+    let nonce = provider.get_transaction_count(from).await?;
+    let (max_fee, priority_fee) = provider.estimate_eip1559_fees().await?;
+    let gas_limit = provider.estimate_gas(&TransactionRequest {
+        from: Some(from),
+        to: Some(token),
+        data: Some(data.clone()),
+        ..Default::default()
+    }).await?;
+    
+    Ok(EvmTransaction {
+        chain_id,
+        nonce,
+        to: token,
+        value: U256::ZERO,
+        gas_limit: gas_limit.as_u64(),
+        max_fee_per_gas: max_fee,
+        max_priority_fee_per_gas: priority_fee,
+        data,
+    })
+}
+
+pub async fn build_solana_transfer(
+    client: &RpcClient,
+    from: Pubkey,
+    to: Pubkey,
+    lamports: u64,
+) -> Result<SolanaTransactionData, Error> {
+    let recent_blockhash = client.get_latest_blockhash().await?;
+    
+    let instruction = system_instruction::transfer(&from, &to, lamports);
+    
+    Ok(SolanaTransactionData {
+        recent_blockhash: recent_blockhash.to_bytes(),
+        instructions: vec![instruction],
+        fee_payer: from,
+    })
+}
+\end{lstlisting}
+
+\section{B.4 Database Migrations}
+
+\begin{lstlisting}[language=SQL, title={Migration: Multi-Chain Schema}]
+-- Migration: 001_create_base_tables.sql
+
+-- Card registry
+CREATE TABLE cards (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    card_identifier VARCHAR(64) UNIQUE NOT NULL,  -- Hash of master pubkey
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    last_activity TIMESTAMP WITH TIME ZONE,
+    status VARCHAR(20) DEFAULT 'active',  -- active, frozen, revoked
+    kyc_tier INTEGER DEFAULT 1
+);
+
+-- Derived addresses per card per chain
+CREATE TABLE derived_addresses (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    card_id UUID REFERENCES cards(id) ON DELETE CASCADE,
+    chain VARCHAR(20) NOT NULL,
+    derivation_path VARCHAR(100) NOT NULL,
+    address VARCHAR(100) NOT NULL,
+    address_index INTEGER NOT NULL,
+    is_smart_wallet BOOLEAN DEFAULT false,
+    smart_wallet_address VARCHAR(100),  -- For EVM chains with AA
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    UNIQUE(card_id, chain, derivation_path)
+);
+
+-- Universal transaction log
+CREATE TABLE transactions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    card_id UUID REFERENCES cards(id),
+    chain VARCHAR(20) NOT NULL,
+    tx_type VARCHAR(20) NOT NULL,  -- transfer, swap, contract_call
+    from_address VARCHAR(100) NOT NULL,
+    to_address VARCHAR(100),
+    amount NUMERIC(36, 18),
+    asset VARCHAR(50),  -- NATIVE, USDC, etc.
+    tx_hash VARCHAR(100),
+    block_number BIGINT,
+    status VARCHAR(20) NOT NULL,  -- pending, confirmed, failed
+    error_message TEXT,
+    gas_used BIGINT,
+    gas_price NUMERIC(36, 18),
+    user_op_hash VARCHAR(100),  -- For ERC-4337 transactions
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    confirmed_at TIMESTAMP WITH TIME ZONE
+);
+
+-- Indexes for performance
+CREATE INDEX idx_tx_card_chain ON transactions(card_id, chain);
+CREATE INDEX idx_tx_status ON transactions(status);
+CREATE INDEX idx_tx_created ON transactions(created_at DESC);
+CREATE INDEX idx_addresses_card ON derived_addresses(card_id);
+CREATE INDEX idx_addresses_chain_addr ON derived_addresses(chain, address);
+
+-- Migration: 002_add_security_tables.sql
+
+-- Fraud detection events
+CREATE TABLE fraud_events (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    card_id UUID REFERENCES cards(id),
+    transaction_id UUID REFERENCES transactions(id),
+    risk_score INTEGER NOT NULL,
+    risk_flags JSONB,
+    action_taken VARCHAR(20),  -- allowed, mfa_required, blocked
+    reviewed_by VARCHAR(100),
+    review_notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Card activity for velocity tracking
+CREATE TABLE card_activity (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    card_id UUID REFERENCES cards(id),
+    activity_type VARCHAR(20) NOT NULL,
+    chain VARCHAR(20),
+    terminal_id VARCHAR(100),
+    ip_address INET,
+    geo_location POINT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX idx_activity_card_time ON card_activity(card_id, created_at DESC);
+\end{lstlisting}
+
+\section{B.5 Docker Compose untuk Development}
+
+\begin{lstlisting}[language=, title={docker-compose.yml}]
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: universalwallet
+      POSTGRES_PASSWORD: devpassword
+      POSTGRES_DB: wallet_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U universalwallet"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Redis for caching and rate limiting
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # Rust Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgres://universalwallet:devpassword@db:5432/wallet_db
+      REDIS_URL: redis://redis:6379
+      RUST_LOG: info
+      
+      # Chain RPCs
+      ETH_RPC_URL: ${ETH_RPC_URL}
+      BASE_RPC_URL: https://mainnet.base.org
+      SOLANA_RPC_URL: https://api.mainnet-beta.solana.com
+      
+      # ERC-4337
+      BUNDLER_URL: ${BUNDLER_URL}
+      PAYMASTER_URL: ${PAYMASTER_URL}
+      ENTRY_POINT_ADDRESS: "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789"
+      
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+    command: cargo watch -x run
+
+  # Local Blockchain (Anvil) for testing
+  anvil:
+    image: ghcr.io/foundry-rs/foundry:latest
+    command: anvil --host 0.0.0.0 --chain-id 31337
+    ports:
+      - "8545:8545"
+
+  # Prometheus for metrics
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+
+  # Grafana for dashboards
+  grafana:
+    image: grafana/grafana:latest
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/dashboards:/etc/grafana/provisioning/dashboards
+    ports:
+      - "3001:3000"
+    depends_on:
+      - prometheus
+
+volumes:
+  postgres_data:
+  redis_data:
+  grafana_data:
+\end{lstlisting}
+
+% =========================================
+% Daftar Istilah
+% =========================================
+\chapter*{Daftar Istilah}
+\addcontentsline{toc}{chapter}{Daftar Istilah}
+
+\begin{description}[style=multiline, leftmargin=4cm, font=\bfseries]
+    \item[BIP-32] \textit{Bitcoin Improvement Proposal 32}: Standar untuk Hierarchical Deterministic (HD) wallets yang memungkinkan derivasi kunci anak dari kunci induk.
+    
+    \item[BIP-39] \textit{Bitcoin Improvement Proposal 39}: Standar untuk menghasilkan mnemonic phrase (12/24 kata) dari entropi dan mengkonversinya menjadi seed.
+    
+    \item[BIP-44] \textit{Bitcoin Improvement Proposal 44}: Standar struktur derivation path untuk multi-coin HD wallets: m/purpose'/coin\_type'/account'/change/index.
+    
+    \item[Chain Code] Nilai 256-bit yang digunakan bersama dengan private key untuk menurunkan child keys dalam BIP-32.
+    
+    \item[Counterfactual Address] Alamat smart contract yang dapat dihitung sebelum deployment menggunakan CREATE2.
+    
+    \item[Derivation Path] Jalur hierarkis yang mendefinisikan bagaimana kunci tertentu diturunkan dari master seed (contoh: m/44'/60'/0'/0/0).
+    
+    \item[ERC-4337] Standar Account Abstraction pada Ethereum yang memungkinkan smart contract wallet menggantikan EOA.
+    
+    \item[Entropy] Data acak (128-256 bit) yang digunakan sebagai sumber untuk menghasilkan mnemonic phrase.
+    
+    \item[Hardened Derivation] Derivasi kunci anak menggunakan private key parent, memberikan isolasi keamanan (ditandai dengan ').
+    
+    \item[HD Wallet] \textit{Hierarchical Deterministic Wallet}: Dompet yang dapat menghasilkan jutaan alamat dari satu master seed.
+    
+    \item[Master Seed] Nilai 512-bit yang dihasilkan dari mnemonic + passphrase menggunakan PBKDF2-HMAC-SHA512.
+    
+    \item[Mnemonic Phrase] Deretan 12 atau 24 kata dari wordlist BIP-39 yang merepresentasikan entropy wallet.
+    
+    \item[Passphrase] Kata sandi opsional ("25th word") yang dikombinasikan dengan mnemonic untuk menghasilkan seed berbeda.
+    
+    \item[PBKDF2] \textit{Password-Based Key Derivation Function 2}: Fungsi untuk menurunkan kunci dari password dengan iterasi tinggi.
+    
+    \item[Secure Element] Chip hardware tahan sabotase yang menyimpan dan memproses data sensitif.
+    
+    \item[SLIP-39] Standar untuk membagi seed menjadi beberapa shares menggunakan Shamir's Secret Sharing.
+    
+    \item[SLIP-44] Registry coin types untuk BIP-44, mendefinisikan nomor unik untuk setiap cryptocurrency.
+    
+    \item[Universal Wallet] Dompet yang dapat mengakses aset di berbagai blockchain dari satu seed/mnemonic.
+    
+    \item[UserOperation] Struktur data pseudo-transaksi dalam ERC-4337 yang mendeskripsikan aksi pengguna.
+\end{description}
+
+% =========================================
+% DAFTAR PUSTAKA
+% =========================================
+\newpage
+\addcontentsline{toc}{chapter}{Daftar Pustaka}
+
+\begin{thebibliography}{99}
+
+% --- BIP Standards ---
+\bibitem{bip32}
+Wuille, P. (2012). \textit{BIP-32: Hierarchical Deterministic Wallets}. Bitcoin Improvement Proposals.
+\newline \url{https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki}
+
+\bibitem{bip39}
+Palatinus, M., et al. (2013). \textit{BIP-39: Mnemonic code for generating deterministic keys}. Bitcoin Improvement Proposals.
+\newline \url{https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki}
+
+\bibitem{bip44}
+Palatinus, M., Rusnak, P. (2014). \textit{BIP-44: Multi-Account Hierarchy for Deterministic Wallets}. Bitcoin Improvement Proposals.
+\newline \url{https://github.com/bitcoin/bips/blob/master/bip-0044.mediawiki}
+
+\bibitem{slip39}
+SatoshiLabs. (2019). \textit{SLIP-39: Shamir's Secret-Sharing for Mnemonic Codes}. SatoshiLabs Improvement Proposals.
+\newline \url{https://github.com/satoshilabs/slips/blob/master/slip-0039.md}
+
+\bibitem{slip44}
+SatoshiLabs. (2014). \textit{SLIP-44: Registered coin types for BIP-44}. SatoshiLabs Improvement Proposals.
+\newline \url{https://github.com/satoshilabs/slips/blob/master/slip-0044.md}
+
+% --- Blockchain & Standards ---
+\bibitem{erc4337}
+Buterin, V., et al. (2021). \textit{ERC-4337: Account Abstraction Using Alt Mempool}. Ethereum Improvement Proposals.
+\newline \url{https://eips.ethereum.org/EIPS/eip-4337}
+
+\bibitem{base-docs}
+Base Team. (2025). \textit{Base Documentation: Building on L2}. Coinbase.
+\newline \url{https://docs.base.org/}
+
+\bibitem{solana-docs}
+Solana Foundation. (2025). \textit{Solana Documentation: Key Derivation}.
+\newline \url{https://docs.solana.com/}
+
+% --- Cryptography ---
+\bibitem{rfc6979}
+Pornin, T. (2013). \textit{RFC 6979: Deterministic Usage of DSA and ECDSA}. IETF.
+\newline \url{https://datatracker.ietf.org/doc/html/rfc6979}
+
+\bibitem{ed25519}
+Bernstein, D.J., et al. (2012). \textit{Ed25519: High-speed high-security signatures}. IACR.
+\newline \url{https://ed25519.cr.yp.to/}
+
+\bibitem{pbkdf2}
+Kaliski, B. (2000). \textit{RFC 2898: PKCS \#5: Password-Based Cryptography Specification}. IETF.
+\newline \url{https://datatracker.ietf.org/doc/html/rfc2898}
+
+% --- Smart Card & Security ---
+\bibitem{javacard}
+Oracle. (2023). \textit{Java Card Platform Specification 3.1}. Oracle.
+\newline \url{https://docs.oracle.com/en/java/javacard/3.1/}
+
+\bibitem{globalplatform}
+GlobalPlatform. (2015). \textit{GlobalPlatform Card Specification v2.3}. GlobalPlatform Inc.
+\newline \url{https://globalplatform.org/specs-library/}
+
+\bibitem{nxp-jcop}
+NXP Semiconductors. (2023). \textit{JCOP 4 Secure Element}. NXP.
+\newline \url{https://www.nxp.com/products/security-and-authentication/secure-elements}
+
+% --- Implementation References ---
+\bibitem{rust-bip39}
+rust-bitcoin. (2025). \textit{rust-bip39: BIP-39 implementation in Rust}.
+\newline \url{https://github.com/rust-bitcoin/rust-bip39}
+
+\bibitem{alloy}
+Alloy Contributors. (2025). \textit{Alloy: Rust library for Ethereum}.
+\newline \url{https://github.com/alloy-rs/alloy}
+
+\bibitem{ledger-dev}
+Ledger. (2025). \textit{Ledger Developer Documentation}.
+\newline \url{https://developers.ledger.com/}
+
+\bibitem{trezor-dev}
+Trezor. (2025). \textit{Trezor Developer Documentation}.
+\newline \url{https://docs.trezor.io/}
+
+\end{thebibliography}
+
+\end{document}
