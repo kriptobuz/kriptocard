@@ -1,7 +1,7 @@
 \documentclass[12pt, a4paper]{report}
 
 % --- Paket Dasar & Pengaturan Bahasa ---
-% \usepackage[utf8]{inputenc}
+\usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage[bahasa]{babel}
 \usepackage{geometry}
@@ -189,7 +189,7 @@ ditunjukkan pada Gambar~\ref{fig:hierarki-kunci}.
 
 \begin{figure}[H]  % H = HERE (paksa di sini)
     \centering
-    \includegraphics[width=0.3\linewidth]{image1.png}
+    \includegraphics[width=0.3\linewidth]{images/image1.png}
     \caption{Struktur Hierarki Derivasi Kunci berdasarkan Standar BIP-32/44}
     \label{fig:hierarki-kunci}
 \end{figure}
@@ -475,7 +475,7 @@ Karena berbagai blockchain menggunakan kurva kriptografi yang berbeda, Secure El
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.75\linewidth]{image2.png}
+    \includegraphics[width=0.75\linewidth]{images/image2.png}
     \caption{Diagram: Multi-Curve Support}
     \label{fig:multicurve-support}
 \end{figure}
@@ -517,7 +517,7 @@ Untuk mendukung multiple signature schemes dan penyimpanan seed yang aman, chip 
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.75\linewidth]{image3.png}
+    \includegraphics[width=0.75\linewidth]{images/image3.png}
     \caption{Diagram: Storage Layout dalam Secure Element}
     \label{fig:secure-element}
 \end{figure}
@@ -588,7 +588,7 @@ Proses setup kartu baru melibatkan beberapa tahap kritis:
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.8\textwidth]{image4.png}
+    \includegraphics[width=0.8\textwidth]{images/image4.png}
     \caption{Sequence Diagram: Kartu Baru - Seed Generation}
     \label{fig:seq-import-seed2}
 \end{figure}
@@ -655,7 +655,7 @@ Untuk pengguna yang ingin mengimpor dompet existing:
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.5\linewidth]{image41.png}
+    \includegraphics[width=0.5\linewidth]{images/image41.png}
     \caption{Sequence Diagram: Import Existing Seed}
     \label{fig:seq-import-seed}
 \end{figure}
@@ -792,7 +792,7 @@ BIP-39 mendukung passphrase opsional yang bertindak sebagai "kata ke-25":
 \section{Lifecycle Management dengan Seed}
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.5\linewidth]{image5.png}
+    \includegraphics[width=0.5\linewidth]{images/image5.png}
     \caption{State Diagram: Universal Wallet Card Lifecycle}
     \label{fig:img-lifecycle}
 \end{figure}
@@ -893,7 +893,7 @@ Terminal harus mampu berkomunikasi dengan berbagai blockchain sekaligus tetap me
 
 \begin{figure}
     \centering
-    \includegraphics[width=1\linewidth]{image6.png}
+    \includegraphics[width=1\linewidth]{images/image6.png}
     \caption{Desain UI}
     \label{fig:desain-ui}
 \end{figure}
@@ -902,7 +902,7 @@ Terminal harus mampu berkomunikasi dengan berbagai blockchain sekaligus tetap me
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.5\linewidth]{image61.png}
+    \includegraphics[width=0.5\linewidth]{images/image61.png}
     \caption{Arsitektur Terminal Universal}
     \label{fig:arsitektur-terminal}
 \end{figure}
@@ -995,7 +995,7 @@ Terminal merchant dapat menerima pembayaran dari \textbf{semua blockchain utama}
 
 \begin{figure}[!htbp]
     \centering
-    \includegraphics[width=0.94\linewidth]{image7.png} % ganti dengan gambar hasil render mermaid kamu
+    \includegraphics[width=0.94\linewidth]{images/image7.png} % ganti dengan gambar hasil render mermaid kamu
     \caption{Sequence Diagram: Universal Payment Flow — Satu alur untuk semua chain}
     \label{fig:universal-payment-flow}
 \end{figure}
@@ -1202,7 +1202,7 @@ Antarmuka untuk membantu pengguna melakukan backup dan recovery mnemonic:
 
 \begin{figure}[!htbp]
     \centering
-    \includesvg[width=0.92\linewidth]{image8.svg}   % langsung .svg
+    \includesvg[width=0.92\linewidth]{images/image8.png}   
     \caption{Backup \& Recovery Flow — Universal \& Future-Proof}
     \label{fig:recovery}
 \end{figure}
