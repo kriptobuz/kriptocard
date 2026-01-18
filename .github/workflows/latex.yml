@@ -1,0 +1,27 @@
+name: Compile LaTeX → PDF
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:   # bisa compile manual dengan klik tombol
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Compile LaTeX (LuaLaTeX + SVG support)
+        uses: xu-cheng/latex-action@v3
+        with:
+          root_file: main.tex
+          latexmk_shell_escape: true
+
+      - name: Upload PDF sebagai artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Universal-Wallet-Whitepaper.pdf
+          path: main.pdf
